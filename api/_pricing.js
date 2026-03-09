@@ -2,10 +2,10 @@ const ROWS = 100, COLS = 100, BASE_PRICE = 10;
 const MAX_DIST = Math.sqrt(49.5 ** 2 + 49.5 ** 2);
 const TIERS = [
   { min: 0,    mult: 1.0 },
-  { min: 100,  mult: 1.3 },
-  { min: 500,  mult: 1.7 },
-  { min: 1000, mult: 2.2 },
-  { min: 2500, mult: 3.0 },
+  { min: 1000, mult: 1.3 },
+  { min: 2500, mult: 1.7 },
+  { min: 5000, mult: 2.2 },
+  { min: 7500, mult: 3.0 },
 ];
 
 function getTierMult(sold) {
