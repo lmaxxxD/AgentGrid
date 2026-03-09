@@ -777,10 +777,15 @@ function drawGrid(){
     for(let c=0;c<COLS;c++){
       const k=`${r}_${c}`;
       const x=c*cellSz, y=r*cellSz, s=cellSz;
-      const dimmed = showForSaleOnly && gridData[k] && !gridData[k].forSale;
+      const isForSale = gridData[k] && gridData[k].forSale;
+      const dimmed = showForSaleOnly && gridData[k] && !isForSale;
       if(gridData[k]){
-        if(showAgentsLayer){
-          ctx.fillStyle = dimmed ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.45)';
+        if(dimmed){
+          // Almost invisible in filter mode
+          ctx.fillStyle='rgba(8,8,26,0.92)';
+          ctx.fillRect(x,y,s,s);
+        } else if(showAgentsLayer){
+          ctx.fillStyle='rgba(0,0,0,0.45)';
           ctx.fillRect(x,y,s,s);
         } else {
           ctx.fillStyle='#1a1a3a';
@@ -809,6 +814,8 @@ function drawGrid(){
   if(showAgentsLayer){
     for(const [k, cell] of Object.entries(gridData)){
       if(!cell.anchor) continue;
+      // In "For Sale" filter mode, skip rendering non-for-sale cells entirely
+      if(showForSaleOnly && !cell.forSale) continue;
       const [r,c]=k.split('_').map(Number);
       const w=cell.anchorW||1, h=cell.anchorH||1;
       const x=c*cellSz, y=r*cellSz;
