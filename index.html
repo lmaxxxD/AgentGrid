@@ -1100,7 +1100,7 @@ function updateTierDisplay() {
 function updateStats(){
   const sold=totalSold();
   document.getElementById('stat-sold').textContent=sold.toLocaleString();
-  document.getElementById('stat-raised').textContent='$'+Object.values(gridData).reduce((a,c)=>a+(c.pricePaid||0),0).toLocaleString();
+  document.getElementById('stat-raised').textContent='$'+Object.values(gridData).filter(c=>c.anchor).reduce((a,c)=>a+(c.pricePaid||0),0).toLocaleString();
   // Floor = cheapest remaining cell
   let minPrice=999;
   for(let r=0;r<ROWS;r++){for(let c=0;c<COLS;c++){if(!gridData[`${r}_${c}`]){const p=getCellPrice(r,c,sold);if(p<minPrice)minPrice=p;}}}
