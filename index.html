@@ -224,6 +224,7 @@
       <div class="toolbar-right">
         <button class="tb-btn" id="btn-heatmap" onclick="toggleHeatmap()" data-i18n="btnHeat">💰 Price Map</button>
         <button class="tb-btn" id="btn-agents" onclick="toggleAgents()" data-i18n="btnAgents">🤖 Agents</button>
+        <button class="tb-btn" id="btn-forsale" onclick="toggleForSale()" data-i18n="btnForSale" style="color:#14f195;border-color:#14f19544">💲 For Sale</button>
         <button class="zoom-btn" onclick="zoom(-1)">−</button>
         <button class="zoom-btn" onclick="zoom(1)">+</button>
         <button class="tb-btn" onclick="resetZoom()">⟳</button>
@@ -237,6 +238,7 @@
       <div class="legend-item"><div class="legend-dot" style="background:#ff6b35"></div><span data-i18n="lMid">Mid Zone ($15)</span></div>
       <div class="legend-item"><div class="legend-dot" style="background:#4488ff"></div><span data-i18n="lEdge">Edge Zone ($10)</span></div>
       <div class="legend-item"><div class="legend-dot" style="background:#555577"></div><span data-i18n="lClaimed">Claimed</span></div>
+      <div class="legend-item"><div class="legend-dot" style="background:#14f195;border:1px dashed #14f195"></div><span data-i18n="lForSale">For Sale</span></div>
     </div>
     <div class="grid-hint" id="grid-hint">Drag to select area · Release to confirm · Click occupied cells for info · Center = premium</div>
   </div>
@@ -290,6 +292,21 @@
         <li class="step"><div class="step-num">3</div><div class="step-text" data-i18n="s3">Fill in name, description, link &amp; upload an icon</div></li>
         <li class="step"><div class="step-num">4</div><div class="step-text" data-i18n="s4">Your agent goes live instantly after on-chain confirmation</div></li>
       </ol>
+      <div style="border-top:1px solid #1e1e42;margin-top:12px;padding-top:12px">
+        <div style="font-size:.68rem;letter-spacing:2px;text-transform:uppercase;color:#14f195;margin-bottom:8px" data-i18n="hResale">Resale</div>
+        <ol class="steps" style="margin-bottom:0">
+          <li class="step"><div class="step-num" style="background:#14f19518;border-color:#14f19533;color:#14f195">5</div><div class="step-text" data-i18n="s5">Owners can list their cell for resale at any price</div></li>
+          <li class="step" style="margin-bottom:0"><div class="step-num" style="background:#14f19518;border-color:#14f19533;color:#14f195">6</div><div class="step-text" data-i18n="s6">Buyers pay via smart contract — 90% auto-sent to seller, 10% platform fee</div></li>
+        </ol>
+      </div>
+    </div>
+
+    <!-- For Sale -->
+    <div class="card" id="forsale-card">
+      <h3 style="color:#14f195" data-i18n="hOnSale">Cells For Sale</h3>
+      <ul class="agent-list" id="forsale-list">
+        <li style="font-size:.75rem;color:#444466;padding:8px 0" data-i18n="noSales">No cells currently for sale</li>
+      </ul>
     </div>
 
     <!-- Featured -->
@@ -592,16 +609,16 @@
 // ═══════════════════════════════════════════════════
 const T = {
   en:{title:'AGENT GRID',subtitle:'THE PERMANENT ADDRESS FOR EVERY AI AGENT',sClaimed:'Claimed',sTotal:'Total',sRaised:'Raised',sFloor:'Floor Price',btnList:'List Your Agent →',btnHeat:'💰 Price Map',btnAgents:'🤖 Agents',lCore:'Core Zone ($50+)',lMid:'Mid Zone ($25)',lEdge:'Edge Zone ($10)',lClaimed:'Claimed',hint:'Click empty cell to claim · Hover to see price · Center = premium',hPricing:'Pricing Zones',zCore:'Core (center 30%)',zMid:'Mid Ring',zEdge:'Edge Zone',priceDynamic:'Early Bird pricing active. Price locks in at purchase — tiers rise as more cells are claimed.',hHow:'How It Works',s1:'Click any empty cell to select it',s2:'Pay USDC/USDT on Base network',s3:"Fill in name, description, link & upload an icon",s4:'Your agent goes live instantly after on-chain confirmation',hFeatured:'Featured Agents',hA2A:'A2A Discovery',a2aDesc:'Every listing includes structured metadata so other AI agents can discover, evaluate, and call your agent automatically.',footerDesc:'The permanent address for every AI agent on the internet',buyTitle:'Claim Your Grid Cell',brPos:'Position',brCells:'Cells',brUnit:'Unit Price',brTotal:'Total',cellSize:'Cell Size (min 1×1)',cells:'cells',minUnit:'Min: 1×1',sendTo:'Send exact amount to:',copy:'Copy',fTx:'Transaction Hash (after payment)',fName:'Agent Name',fDesc:'Description (max 120 chars)',fUrl:'Agent URL',fEmoji:'Emoji',fColor:'Color',fCategory:'Category',btnSubmit:'Submit',successMsg:'✓ Submitted! Your cell will go live automatically once the transaction is confirmed on-chain.',ttEmpty:'Empty · click to claim',ttPrice:'Unit price:',ttRises:'(rises with demand)',viewAgent:'Visit Agent →',
-    hPermament:'Permanent Promise',permRule1:'One purchase, on-chain forever — irrevocable.',permRule2:'Your cell, your rules. Update your agent info anytime.',permRule3:"Your agent's name, written here permanently.",permRule4:'10,000 cells total. Once sold out, never reissued.',
+    hPermament:'Permanent Promise',permRule1:'One purchase, on-chain forever — irrevocable.',permRule2:'Your cell, your rules. Update your agent info anytime.',permRule3:"Your agent's name, written here permanently.",permRule4:'10,000 cells total. Once sold out, never reissued.',btnForSale:'💲 For Sale',lForSale:'For Sale',hResale:'Resale',s5:'Owners can list their cell for resale at any price',s6:'Buyers pay via smart contract — 90% auto-sent to seller, 10% platform fee',hOnSale:'Cells For Sale',noSales:'No cells currently for sale',
     heroBanner:'Years from now, when people look back on the rise of AI, they may recall this map. The names of agents worth remembering — they were all written here.'},
   zh:{title:'AGENT GRID',subtitle:'每个 AI 智能体的永久坐标',sClaimed:'已认领',sTotal:'总数',sRaised:'募集额',sFloor:'起步价',btnList:'登记你的智能体 →',btnHeat:'💰 价格地图',btnAgents:'🤖 智能体',lCore:'核心区（$50+）',lMid:'中间区（$25）',lEdge:'边缘区（$10）',lClaimed:'已认领',hint:'点击空白格子认领 · 悬停查看价格 · 中心最贵',hPricing:'价格区域',zCore:'核心区（中心30%）',zMid:'中间环形区',zEdge:'边缘区',priceDynamic:'早鸟价格进行中。购买时锁定当前阶段价格，随着格子售出将阶梯式上涨。',hHow:'如何参与',s1:'点击任意空白格子',s2:'在 Base 网络发送 USDC/USDT',s3:'填写名称、描述、链接，并上传图标',s4:'链上确认后自动上线，无需等待',hFeatured:'精选智能体',hA2A:'A2A 发现协议',a2aDesc:'每个列表包含结构化元数据，其他AI智能体可以自动发现、评估并调用你的智能体。',footerDesc:'AI 智能体的第一张永久地图，建立在 Base 之上',buyTitle:'认领你的格子',brPos:'位置',brCells:'格子数',brUnit:'单价',brTotal:'合计',cellSize:'格子大小（最小1×1）',cells:'格',minUnit:'最小：1×1',sendTo:'请发送精确金额至：',copy:'复制',fTx:'交易哈希（付款后填写）',fName:'智能体名称',fDesc:'描述（最多120字）',fUrl:'智能体链接',fEmoji:'表情',fColor:'颜色',fCategory:'类别',btnSubmit:'提交',successMsg:'✓ 已提交！链上确认后格子将自动激活上线。',ttEmpty:'空白 · 点击认领',ttPrice:'单价：',ttRises:'（随需求上涨）',viewAgent:'访问智能体 →',
-    hPermament:'永久承诺',permRule1:'一次购买，永久上链，不可撤销',permRule2:'你的格子，你做主。随时更新 Agent 信息。',permRule3:'你的 Agent 名字，永久书写在这里',permRule4:'10,000 格，售完即止，不再增发',
+    hPermament:'永久承诺',permRule1:'一次购买，永久上链，不可撤销',permRule2:'你的格子，你做主。随时更新 Agent 信息。',permRule3:'你的 Agent 名字，永久书写在这里',permRule4:'10,000 格，售完即止，不再增发',btnForSale:'💲 出售中',lForSale:'出售中',hResale:'转售',s5:'所有者可以随时将格子挂牌出售，自由定价',s6:'买家通过智能合约支付 — 90% 自动转给卖家，10% 平台手续费',hOnSale:'正在出售的格子',noSales:'暂无出售中的格子',
     heroBanner:'多年后，人们回望 AI 崛起的那个时代，也许会提起这张地图。那些值得被铭记的 Agent 们的名字，都曾书写在这里。'},
   ja:{title:'AGENT GRID',subtitle:'すべてのAIエージェントの永久アドレス',sClaimed:'取得済',sTotal:'総数',sRaised:'調達額',sFloor:'最低価格',btnList:'エージェントを登録 →',btnHeat:'💰 価格マップ',btnAgents:'🤖 エージェント',lCore:'コアゾーン（$50+）',lMid:'ミッドゾーン（$25）',lEdge:'エッジゾーン（$10）',lClaimed:'取得済',hint:'空きセルをクリックして取得 · ホバーで価格確認 · 中心ほど高価',hPricing:'価格ゾーン',zCore:'コア（中心30%）',zMid:'ミッドリング',zEdge:'エッジゾーン',priceDynamic:'アーリーバード価格適用中。購入時点の価格が確定し、販売数に応じて段階的に上昇します。',hHow:'使い方',s1:'空きセルをクリックして選択',s2:'BaseネットワークでUSDC/USDTを送金',s3:'名前・説明・リンクを入力してアイコンをアップロード',s4:'オンチェーン確認後、即時グリッドに表示されます',hFeatured:'注目エージェント',hA2A:'A2A対応',a2aDesc:'各リストには構造化メタデータが含まれ、他のAIエージェントが自動的に発見・評価・呼び出しできます。',footerDesc:'すべてのAIエージェントのための永久アドレス。Base上に構築',buyTitle:'グリッドセルを取得',brPos:'位置',brCells:'セル数',brUnit:'単価',brTotal:'合計',cellSize:'セルサイズ（最小1×1）',cells:'セル',minUnit:'最小：1×1',sendTo:'以下へ正確な金額を送金:',copy:'コピー',fTx:'トランザクションハッシュ（送金後）',fName:'エージェント名',fDesc:'説明（最大120文字）',fUrl:'エージェントURL',fEmoji:'絵文字',fColor:'カラー',fCategory:'カテゴリ',btnSubmit:'送信する',successMsg:'✓ 送信しました！オンチェーン確認後、自動的にセルが有効化されます。',ttEmpty:'空きセル · クリックして取得',ttPrice:'単価：',ttRises:'（需要に応じて上昇）',viewAgent:'エージェントを見る →',
-    hPermament:'永久の約束',permRule1:'一度の購入で永久にオンチェーン。取消不可。',permRule2:'あなたのセル、あなたのルール。エージェント情報はいつでも更新可能。',permRule3:'あなたのエージェントの名前が、ここに永久に刻まれる。',permRule4:'総数10,000セル。完売後は追加発行なし。',
+    hPermament:'永久の約束',permRule1:'一度の購入で永久にオンチェーン。取消不可。',permRule2:'あなたのセル、あなたのルール。エージェント情報はいつでも更新可能。',permRule3:'あなたのエージェントの名前が、ここに永久に刻まれる。',permRule4:'総数10,000セル。完売後は追加発行なし。',btnForSale:'💲 販売中',lForSale:'販売中',hResale:'再販',s5:'オーナーはセルを自由な価格で再販できます',s6:'スマートコントラクト経由: 90%が売り手に、10%がプラットフォーム手数料',hOnSale:'販売中のセル',noSales:'現在販売中のセルはありません',
     heroBanner:'何年か後、AI台頭の時代を振り返るとき、この地図が語られるかもしれない。記憶に値するエージェントたちの名前は、すべてここに刻まれていた。'},
   es:{title:'AGENT GRID',subtitle:'LA DIRECCIÓN PERMANENTE DE CADA AGENTE IA',sClaimed:'Reclamadas',sTotal:'Total',sRaised:'Recaudado',sFloor:'Precio Base',btnList:'Registrar tu Agente →',btnHeat:'💰 Mapa de Precios',btnAgents:'🤖 Agentes',lCore:'Zona Core ($50+)',lMid:'Zona Media ($25)',lEdge:'Zona Borde ($10)',lClaimed:'Reclamada',hint:'Clic en celda vacía para reclamar · Hover para ver precio · Centro = premium',hPricing:'Zonas de Precio',zCore:'Core (centro 30%)',zMid:'Anillo Medio',zEdge:'Zona Borde',priceDynamic:'Precio Early Bird activo. Se fija al comprar — el precio sube por etapas conforme se venden celdas.',hHow:'Cómo Funciona',s1:'Haz clic en cualquier celda vacía',s2:'Paga USDC/USDT en red Base',s3:'Completa nombre, descripción, enlace y sube un ícono',s4:'Tu agente se activa al instante tras la confirmación on-chain',hFeatured:'Agentes Destacados',hA2A:'Descubrimiento A2A',a2aDesc:'Cada listado incluye metadatos estructurados para que otros agentes IA puedan descubrir, evaluar y llamar a tu agente automáticamente.',footerDesc:'La dirección permanente para cada agente IA en internet',buyTitle:'Reclamar tu Celda',brPos:'Posición',brCells:'Celdas',brUnit:'Precio Unitario',brTotal:'Total',cellSize:'Tamaño de Celda (mín 1×1)',cells:'celdas',minUnit:'Mín: 1×1',sendTo:'Envía el monto exacto a:',copy:'Copiar',fTx:'Hash de transacción (tras el pago)',fName:'Nombre del Agente',fDesc:'Descripción (máx 120 caracteres)',fUrl:'URL del Agente',fEmoji:'Emoji',fColor:'Color',fCategory:'Categoría',btnSubmit:'Enviar',successMsg:'✓ ¡Enviado! Tu celda se activará automáticamente una vez confirmada la transacción on-chain.',ttEmpty:'Vacía · clic para reclamar',ttPrice:'Precio unitario:',ttRises:'(sube con la demanda)',viewAgent:'Ver Agente →',
-    hPermament:'Promesa Permanente',permRule1:'Una compra, en cadena para siempre — irrevocable.',permRule2:'Tu celda, tus reglas. Actualiza la info de tu agente en cualquier momento.',permRule3:'El nombre de tu agente, escrito aquí permanentemente.',permRule4:'10,000 celdas en total. Sin reemisión tras agotarse.',
+    hPermament:'Promesa Permanente',permRule1:'Una compra, en cadena para siempre — irrevocable.',permRule2:'Tu celda, tus reglas. Actualiza la info de tu agente en cualquier momento.',permRule3:'El nombre de tu agente, escrito aquí permanentemente.',permRule4:'10,000 celdas en total. Sin reemisión tras agotarse.',btnForSale:'💲 En Venta',lForSale:'En Venta',hResale:'Reventa',s5:'Los propietarios pueden listar su celda para reventa a cualquier precio',s6:'Pago vía contrato inteligente — 90% al vendedor, 10% comisión de plataforma',hOnSale:'Celdas en Venta',noSales:'No hay celdas en venta actualmente',
     heroBanner:'Años después, cuando la gente mire atrás hacia el surgimiento de la IA, quizás recuerden este mapa. Los nombres de los agentes que merecían ser recordados — todos estuvieron escritos aquí.'}
 };
 let lang = 'en';
@@ -738,6 +755,7 @@ function loadGridFromAPI() {
       });
       drawGrid();
       updateStats();
+      buildForSaleList();
     })
     .catch(() => {}); // silently fail — sample data still shows
 }
@@ -759,17 +777,17 @@ function drawGrid(){
     for(let c=0;c<COLS;c++){
       const k=`${r}_${c}`;
       const x=c*cellSz, y=r*cellSz, s=cellSz;
+      const dimmed = showForSaleOnly && gridData[k] && !gridData[k].forSale;
       if(gridData[k]){
         if(showAgentsLayer){
-          // Dark fill only — block border drawn in Pass 2
-          ctx.fillStyle='rgba(0,0,0,0.45)';
+          ctx.fillStyle = dimmed ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.45)';
           ctx.fillRect(x,y,s,s);
         } else {
           ctx.fillStyle='#1a1a3a';
           ctx.fillRect(x,y,s,s);
         }
       } else {
-        if(showHeatmap){
+        if(showHeatmap && !showForSaleOnly){
           ctx.fillStyle=getHeatColor(r,c,0.35);
           ctx.fillRect(x,y,s,s);
         }
@@ -1088,6 +1106,22 @@ function updateStats(){
 // ═══════════════════════════════════════════════════
 function toggleHeatmap(){showHeatmap=!showHeatmap;document.getElementById('btn-heatmap').classList.toggle('active',showHeatmap);drawGrid()}
 function toggleAgents(){showAgentsLayer=!showAgentsLayer;document.getElementById('btn-agents').classList.toggle('active',showAgentsLayer);drawGrid()}
+let showForSaleOnly=false;
+function toggleForSale(){
+  showForSaleOnly=!showForSaleOnly;
+  document.getElementById('btn-forsale').classList.toggle('active',showForSaleOnly);
+  if(showForSaleOnly){
+    // Scroll to first for-sale cell
+    const fsCell=Object.entries(gridData).find(([k,c])=>c.forSale&&c.anchor);
+    if(fsCell){
+      const [r,c]=fsCell[0].split('_').map(Number);
+      const wrap=document.getElementById('canvas-wrap');
+      wrap.scrollLeft=Math.max(0,c*cellSz-150);
+      wrap.scrollTop=Math.max(0,r*cellSz-150);
+    }
+  }
+  drawGrid();
+}
 function zoom(d){const sizes=[6,8,10,12,16,20];const i=sizes.indexOf(cellSz);const ni=Math.max(0,Math.min(sizes.length-1,i+d));cellSz=sizes[ni];resizeCanvas();drawGrid()}
 function resetZoom(){
   cellSz=10;resizeCanvas();drawGrid();
@@ -1609,6 +1643,34 @@ function buildAgentList(){
       </div>
       <span class="agent-price">$${a.pricePaid}</span>
     </li>`).join('');
+  buildForSaleList();
+}
+
+function buildForSaleList(){
+  const list=document.getElementById('forsale-list');
+  const forSaleCells=Object.entries(gridData)
+    .filter(([k,c])=>c.forSale&&c.anchor)
+    .map(([k,c])=>({...c,key:k}));
+
+  if(forSaleCells.length===0){
+    const noSaleText={en:'No cells currently for sale',zh:'暂无出售中的格子',ja:'現在販売中のセルはありません',es:'No hay celdas en venta'};
+    list.innerHTML=`<li style="font-size:.75rem;color:#444466;padding:8px 0">${noSaleText[lang]||noSaleText.en}</li>`;
+    return;
+  }
+
+  list.innerHTML=forSaleCells.slice(0,10).map(a=>{
+    const fee=Math.round(a.askingPrice*0.1*100)/100;
+    const buyerPays=Math.round((a.askingPrice+fee)*100)/100;
+    return `
+    <li class="agent-item" onclick="scrollToAgent(${a.r},${a.c})" style="border-left:2px solid #14f195;padding-left:8px">
+      <div class="agent-avatar" style="background:${a.color}22;color:${a.color}">${a.emoji}</div>
+      <div>
+        <div class="agent-name">${a.name}</div>
+        <div class="agent-type">(${a.c}, ${a.r}) · ${a.cat}</div>
+      </div>
+      <span class="agent-price" style="color:#14f195">$${a.askingPrice}</span>
+    </li>`;
+  }).join('');
 }
 
 function scrollToAgent(r,c){
