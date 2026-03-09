@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AGENT GRID — The Million Agent Homepage</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.1/ethers.umd.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{background:#08081a;color:#e0e0ff;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
@@ -541,18 +542,20 @@
           <span class="badge badge-usdc">USDC</span>
           <span class="badge badge-usdt">USDT</span>
         </div>
-        <div class="pay-amount" id="resale-pay-amount">$0 <span>USDC</span></div>
-        <div class="pay-label">Send exact amount to:</div>
-        <div class="wallet-row">
-          <div class="wallet-addr">0x6fC3E15f1901AF02A986BccD3201f345BB4A4bfF</div>
-          <button class="copy-btn" onclick="copyWallet()">Copy</button>
+        <div style="font-size:.72rem;color:#8888aa;margin-bottom:10px;line-height:1.5">
+          Connect your wallet → Approve USDC → Contract auto-splits: <span style="color:#14f195">90% to seller</span>, <span style="color:#ff9500">10% to platform</span>.
+        </div>
+        <!-- Token selector -->
+        <div style="display:flex;gap:6px;margin-bottom:12px">
+          <button class="tb-btn active" id="resale-usdc-btn" onclick="setResaleToken('usdc')" style="flex:1">USDC</button>
+          <button class="tb-btn" id="resale-usdt-btn" onclick="setResaleToken('usdt')" style="flex:1">USDT</button>
+        </div>
+        <!-- Wallet status -->
+        <div id="resale-wallet-status" style="background:#08081a;border:1px solid #2a2a5a;border-radius:8px;padding:10px;font-size:.75rem;color:#666688;margin-bottom:12px">
+          Wallet not connected
         </div>
       </div>
-      <div class="fgroup">
-        <label class="flabel">Transaction Hash (after payment)</label>
-        <input class="finput" id="resale-tx" type="text" placeholder="0x...">
-      </div>
-      <p style="font-size:.72rem;color:#666688;margin-bottom:10px">Optionally update the agent info (or keep current):</p>
+      <p style="font-size:.72rem;color:#666688;margin-bottom:10px">Optionally update the agent info after purchase:</p>
       <div class="fgroup">
         <label class="flabel">Agent Name</label>
         <input class="finput" id="resale-name" type="text">
@@ -567,9 +570,17 @@
       </div>
       <div style="display:flex;gap:10px;margin-top:10px">
         <button class="sub-btn" style="background:#2a2a5a;flex:1" onclick="hideBuyResaleMode()">Cancel</button>
-        <button class="sub-btn" style="flex:2;background:linear-gradient(135deg,#14f195,#00d4ff);color:#000" onclick="submitBuyResale()" id="buy-resale-btn">Confirm Purchase</button>
+        <button class="sub-btn" style="flex:2;background:linear-gradient(135deg,#14f195,#00d4ff);color:#000" onclick="startResalePurchase()" id="buy-resale-btn">Connect Wallet & Buy</button>
       </div>
-      <div class="success-box" id="resale-success">✓ Purchase complete! You are now the owner of this cell.</div>
+      <div id="resale-progress" style="display:none;margin-top:12px">
+        <div style="font-size:.78rem;color:#8888aa;line-height:1.8">
+          <div id="step-connect">⏳ 1. Connecting wallet...</div>
+          <div id="step-approve" style="color:#444466">⬜ 2. Approving token spend...</div>
+          <div id="step-buy" style="color:#444466">⬜ 3. Executing purchase...</div>
+          <div id="step-verify" style="color:#444466">⬜ 4. Verifying on-chain...</div>
+        </div>
+      </div>
+      <div class="success-box" id="resale-success">✓ Purchase complete! Funds sent automatically: 90% to seller, 10% to platform.</div>
     </div>
   </div>
 </div>
@@ -718,7 +729,7 @@ function loadGridFromAPI() {
               name: a.name, desc: a.description, url: a.url,
               emoji: a.emoji, color: a.color, cat: a.category,
               pricePaid: a.price_paid, tx_hash: a.tx_hash,
-              cellId: a.id, forSale: a.for_sale, askingPrice: a.asking_price,
+              cellId: a.id, forSale: a.for_sale, askingPrice: a.asking_price, sellerWallet: a.seller_wallet,
               anchor: r === a.row && c === a.col,
               anchorW: a.width, anchorH: a.height
             };
@@ -1388,13 +1399,37 @@ function cancelSale() {
 }
 
 // ═══════════════════════════════════════════════════
-// Buy Resale
+// Buy Resale (Decentralized via Smart Contract)
 // ═══════════════════════════════════════════════════
+// TODO: Replace with actual deployed contract address
+const MARKET_CONTRACT = '0x0000000000000000000000000000000000000000';
+const BASE_CHAIN_ID   = 8453;
+const USDC_ADDR       = '0x833589fcd6eDb6E08f4c7C32D4f71b54bdA02913';
+const USDT_ADDR       = '0xfde4C96c680539616096DBa9a22a4b266024ac2d';
+
+const MARKET_ABI = [
+  'function buyWithUSDC(uint256 cellId, address seller, uint256 totalAmount) external',
+  'function buyWithUSDT(uint256 cellId, address seller, uint256 totalAmount) external'
+];
+const ERC20_ABI = [
+  'function approve(address spender, uint256 amount) external returns (bool)',
+  'function allowance(address owner, address spender) external view returns (uint256)'
+];
+
+let resaleToken = 'usdc';
+function setResaleToken(t) {
+  resaleToken = t;
+  document.getElementById('resale-usdc-btn').classList.toggle('active', t === 'usdc');
+  document.getElementById('resale-usdt-btn').classList.toggle('active', t === 'usdt');
+}
+
 function showBuyResaleMode() {
   if (!editingCell) return;
   document.getElementById('ci-view').style.display = 'none';
   document.getElementById('ci-buy-resale').style.display = 'block';
   document.getElementById('resale-success').style.display = 'none';
+  document.getElementById('resale-progress').style.display = 'none';
+  resetSteps();
 
   const price = editingCell.askingPrice;
   const fee = Math.round(price * 0.1 * 100) / 100;
@@ -1404,54 +1439,158 @@ function showBuyResaleMode() {
   document.getElementById('resale-seller-price').textContent = `$${price}`;
   document.getElementById('resale-fee').textContent = `$${fee}`;
   document.getElementById('resale-total').textContent = `$${total}`;
-  document.getElementById('resale-pay-amount').innerHTML = `$${total} <span>USDC</span>`;
-  document.getElementById('resale-tx').value = '';
   document.getElementById('resale-name').value = editingCell.name || '';
   document.getElementById('resale-desc').value = editingCell.desc || '';
   document.getElementById('resale-url').value = editingCell.url || '';
+
+  // Check if wallet already connected
+  if (window.ethereum && window.ethereum.selectedAddress) {
+    document.getElementById('resale-wallet-status').innerHTML =
+      `<span style="color:#14f195">Connected:</span> ${window.ethereum.selectedAddress.slice(0,6)}...${window.ethereum.selectedAddress.slice(-4)}`;
+  }
 }
 function hideBuyResaleMode() {
   document.getElementById('ci-view').style.display = 'block';
   document.getElementById('ci-buy-resale').style.display = 'none';
 }
 
-function submitBuyResale() {
-  const buyerTxHash = document.getElementById('resale-tx').value.trim();
-  const name = document.getElementById('resale-name').value.trim();
-  const desc = document.getElementById('resale-desc').value.trim();
-  const url = document.getElementById('resale-url').value.trim();
+function resetSteps() {
+  ['step-connect','step-approve','step-buy','step-verify'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.color = '#444466';
+    el.textContent = el.textContent.replace(/^[✅⏳❌⬜]\s*/, '⬜ ');
+  });
+}
+function setStep(id, status, text) {
+  const el = document.getElementById(id);
+  const icons = { pending: '⏳', done: '✅', error: '❌' };
+  const colors = { pending: '#ff9500', done: '#14f195', error: '#ff5555' };
+  el.style.color = colors[status];
+  el.textContent = `${icons[status]} ${text}`;
+}
 
-  if (!buyerTxHash) { alert('Please enter your transaction hash.'); return; }
+async function startResalePurchase() {
   if (!editingCell || !editingCell.cellId) { alert('Cell data missing.'); return; }
+  if (MARKET_CONTRACT === '0x0000000000000000000000000000000000000000') {
+    alert('Marketplace contract not yet deployed. Please check back soon!');
+    return;
+  }
 
   const btn = document.getElementById('buy-resale-btn');
   btn.disabled = true;
-  btn.textContent = '⏳ Verifying...';
+  btn.textContent = '⏳ Processing...';
+  document.getElementById('resale-progress').style.display = 'block';
+  resetSteps();
 
-  fetch(`${API_BASE}/api/buy-resale`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      cellId: editingCell.cellId,
-      buyerTxHash,
-      name: name || undefined,
-      description: desc || undefined,
-      url: url || undefined
-    })
-  })
-    .then(r => r.json())
-    .then(data => {
-      btn.disabled = false;
-      btn.textContent = 'Confirm Purchase';
-      if (data.ok) {
-        document.getElementById('resale-success').style.display = 'block';
-        loadGridFromAPI();
-        setTimeout(() => { hideBuyResaleMode(); closeModal('modal-cell'); }, 2000);
-      } else {
-        alert('❌ ' + (data.error || 'Purchase failed'));
+  try {
+    // Step 1: Connect wallet
+    setStep('step-connect', 'pending', '1. Connecting wallet...');
+    if (!window.ethereum) throw new Error('No wallet found. Please install MetaMask.');
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send('eth_requestAccounts', []);
+
+    // Ensure Base network
+    const network = await provider.getNetwork();
+    if (Number(network.chainId) !== BASE_CHAIN_ID) {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: '0x' + BASE_CHAIN_ID.toString(16) }]
+        });
+      } catch (switchErr) {
+        if (switchErr.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [{
+              chainId: '0x' + BASE_CHAIN_ID.toString(16),
+              chainName: 'Base',
+              nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+              rpcUrls: ['https://mainnet.base.org'],
+              blockExplorerUrls: ['https://basescan.org']
+            }]
+          });
+        } else throw switchErr;
       }
-    })
-    .catch(() => { btn.disabled = false; btn.textContent = 'Confirm Purchase'; alert('Network error.'); });
+    }
+
+    const signer = await provider.getSigner();
+    const buyerAddr = await signer.getAddress();
+    setStep('step-connect', 'done', `1. Wallet connected: ${buyerAddr.slice(0,6)}...${buyerAddr.slice(-4)}`);
+    document.getElementById('resale-wallet-status').innerHTML =
+      `<span style="color:#14f195">Connected:</span> ${buyerAddr.slice(0,6)}...${buyerAddr.slice(-4)}`;
+
+    // Calculate amounts (USDC/USDT use 6 decimals)
+    const sellerPrice  = editingCell.askingPrice;
+    const fee          = sellerPrice * 0.1;
+    const totalApprove = sellerPrice + fee;
+    const amountRaw    = BigInt(Math.round(sellerPrice * 1_000_000));
+    const approveRaw   = BigInt(Math.round(totalApprove * 1_000_000));
+
+    const tokenAddr = resaleToken === 'usdc' ? USDC_ADDR : USDT_ADDR;
+    const tokenContract = new ethers.Contract(tokenAddr, ERC20_ABI, signer);
+    const marketContract = new ethers.Contract(MARKET_CONTRACT, MARKET_ABI, signer);
+
+    // Step 2: Approve
+    setStep('step-approve', 'pending', '2. Approving token spend...');
+    const currentAllowance = await tokenContract.allowance(buyerAddr, MARKET_CONTRACT);
+    if (currentAllowance < approveRaw) {
+      const approveTx = await tokenContract.approve(MARKET_CONTRACT, approveRaw);
+      await approveTx.wait(1);
+    }
+    setStep('step-approve', 'done', '2. Token approved');
+
+    // Step 3: Call buy on marketplace contract
+    setStep('step-buy', 'pending', '3. Executing purchase...');
+    const buyFn = resaleToken === 'usdc' ? 'buyWithUSDC' : 'buyWithUSDT';
+    const buyTx = await marketContract[buyFn](
+      editingCell.cellId,
+      editingCell.sellerWallet || ethers.ZeroAddress,
+      amountRaw
+    );
+    const receipt = await buyTx.wait(3); // wait 3 confirmations
+    const txHash = receipt.hash;
+    setStep('step-buy', 'done', '3. On-chain purchase complete');
+
+    // Step 4: Notify backend
+    setStep('step-verify', 'pending', '4. Verifying on backend...');
+    const name = document.getElementById('resale-name').value.trim();
+    const desc = document.getElementById('resale-desc').value.trim();
+    const url  = document.getElementById('resale-url').value.trim();
+
+    const resp = await fetch(`${API_BASE}/api/buy-resale`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        cellId: editingCell.cellId,
+        buyerTxHash: txHash,
+        name: name || undefined,
+        description: desc || undefined,
+        url: url || undefined
+      })
+    });
+    const data = await resp.json();
+    if (!data.ok) throw new Error(data.error || 'Backend verification failed');
+
+    setStep('step-verify', 'done', '4. Ownership transferred!');
+    document.getElementById('resale-success').style.display = 'block';
+    loadGridFromAPI();
+    setTimeout(() => { hideBuyResaleMode(); closeModal('modal-cell'); }, 3000);
+
+  } catch (err) {
+    console.error(err);
+    const msg = err.reason || err.message || 'Transaction failed';
+    // Mark current pending step as error
+    ['step-connect','step-approve','step-buy','step-verify'].forEach(id => {
+      if (document.getElementById(id).style.color === 'rgb(255, 149, 0)') {
+        setStep(id, 'error', document.getElementById(id).textContent.replace(/^⏳\s*/, '') + ' — ' + msg);
+      }
+    });
+    alert('❌ ' + msg);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Connect Wallet & Buy';
+  }
 }
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hidden')}));
 
