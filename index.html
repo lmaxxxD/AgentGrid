@@ -302,7 +302,7 @@
       <h3 data-i18n="hPermament">永久承诺</h3>
       <ul class="steps">
         <li class="step"><div class="step-num" style="background:#00ffcc18;border-color:#00ffcc33;color:#00ffcc">✦</div><div class="step-text" data-i18n="permRule1">一次购买，永久上链，不可撤销</div></li>
-        <li class="step"><div class="step-num" style="background:#00ffcc18;border-color:#00ffcc33;color:#00ffcc">✦</div><div class="step-text" data-i18n="permRule2">不可转让，不可覆盖，永远是你的</div></li>
+        <li class="step"><div class="step-num" style="background:#00ffcc18;border-color:#00ffcc33;color:#00ffcc">✦</div><div class="step-text" data-i18n="permRule2">你的格子，你做主。随时更新 Agent 信息。</div></li>
         <li class="step"><div class="step-num" style="background:#00ffcc18;border-color:#00ffcc33;color:#00ffcc">✦</div><div class="step-text" data-i18n="permRule3">你的 Agent 名字，永久书写在这里</div></li>
         <li class="step" style="margin-bottom:0"><div class="step-num" style="background:#00ffcc18;border-color:#00ffcc33;color:#00ffcc">✦</div><div class="step-text" data-i18n="permRule4">10,000 格，售完即止，不再增发</div></li>
       </ul>
@@ -419,18 +419,66 @@
 <div class="overlay hidden" id="modal-cell">
   <div class="modal">
     <button class="modal-x" onclick="closeModal('modal-cell')">×</button>
-    <div class="cell-header">
-      <div class="cell-icon" id="ci-icon">🤖</div>
-      <div>
-        <div class="cell-agent-name" id="ci-name">Agent</div>
-        <div class="cell-cat" id="ci-cat">Dev · (50, 50)</div>
+    <!-- View mode -->
+    <div id="ci-view">
+      <div class="cell-header">
+        <div class="cell-icon" id="ci-icon">🤖</div>
+        <div>
+          <div class="cell-agent-name" id="ci-name">Agent</div>
+          <div class="cell-cat" id="ci-cat">Dev · (50, 50)</div>
+        </div>
       </div>
+      <p class="cell-desc" id="ci-desc"></p>
+      <a href="#" class="cell-link" id="ci-link" target="_blank" rel="noopener">Visit Agent →</a>
+      <div class="cell-meta" style="margin-bottom:14px">
+        <span id="ci-date"></span>
+        <span id="ci-price-paid"></span>
+      </div>
+      <button class="sub-btn" style="background:#2a2a5a;margin-top:6px" onclick="showEditMode()" data-i18n="btnEdit">Edit Agent Info</button>
     </div>
-    <p class="cell-desc" id="ci-desc"></p>
-    <a href="#" class="cell-link" id="ci-link" target="_blank" rel="noopener">Visit Agent →</a>
-    <div class="cell-meta" style="margin-bottom:14px">
-      <span id="ci-date"></span>
-      <span id="ci-price-paid"></span>
+    <!-- Edit mode -->
+    <div id="ci-edit" style="display:none">
+      <h2 style="margin-bottom:14px" data-i18n="editTitle">Edit Agent Info</h2>
+      <p style="font-size:.72rem;color:#8888aa;margin-bottom:14px" data-i18n="editHint">Enter the transaction hash you used to purchase this cell to verify ownership.</p>
+      <div class="fgroup">
+        <label class="flabel">Transaction Hash</label>
+        <input class="finput" id="edit-tx" type="text" placeholder="0x...">
+      </div>
+      <div class="fgroup">
+        <label class="flabel" data-i18n="fName">Agent Name</label>
+        <input class="finput" id="edit-name" type="text" placeholder="MyAgent v1.0">
+      </div>
+      <div class="fgroup">
+        <label class="flabel" data-i18n="fDesc">Description (max 120 chars)</label>
+        <input class="finput" id="edit-desc" type="text" maxlength="120">
+      </div>
+      <div class="fgroup">
+        <label class="flabel" data-i18n="fUrl">Agent URL</label>
+        <input class="finput" id="edit-url" type="url" placeholder="https://...">
+      </div>
+      <div class="finput-row">
+        <div class="fgroup">
+          <label class="flabel" data-i18n="fEmoji">Emoji</label>
+          <input class="finput" id="edit-emoji" type="text" maxlength="4" style="width:70px">
+        </div>
+        <div class="fgroup">
+          <label class="flabel" data-i18n="fColor">Color</label>
+          <input class="finput" id="edit-color" type="color" value="#00ffcc" style="height:40px;padding:4px;cursor:pointer">
+        </div>
+        <div class="fgroup" style="flex:2">
+          <label class="flabel" data-i18n="fCategory">Category</label>
+          <select class="finput" id="edit-cat">
+            <option>Dev</option><option>Finance</option><option>Research</option>
+            <option>Creative</option><option>Social</option><option>Education</option>
+            <option>Security</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="sub-btn" style="background:#2a2a5a;flex:1" onclick="hideEditMode()">Cancel</button>
+        <button class="sub-btn" style="flex:2" onclick="submitEdit()" id="edit-submit-btn">Save Changes</button>
+      </div>
+      <div class="success-box" id="edit-success" data-i18n="editSuccess">✓ Agent info updated successfully!</div>
     </div>
   </div>
 </div>
@@ -442,16 +490,16 @@
 // ═══════════════════════════════════════════════════
 const T = {
   en:{title:'AGENT GRID',subtitle:'THE PERMANENT ADDRESS FOR EVERY AI AGENT',sClaimed:'Claimed',sTotal:'Total',sRaised:'Raised',sFloor:'Floor Price',btnList:'List Your Agent →',btnHeat:'💰 Price Map',btnAgents:'🤖 Agents',lCore:'Core Zone ($50+)',lMid:'Mid Zone ($25)',lEdge:'Edge Zone ($10)',lClaimed:'Claimed',hint:'Click empty cell to claim · Hover to see price · Center = premium',hPricing:'Pricing Zones',zCore:'Core (center 30%)',zMid:'Mid Ring',zEdge:'Edge Zone',priceDynamic:'Early Bird pricing active. Price locks in at purchase — tiers rise as more cells are claimed.',hHow:'How It Works',s1:'Click any empty cell to select it',s2:'Pay USDC/USDT on Base network',s3:"Fill in name, description, link & upload an icon",s4:'Your agent goes live instantly after on-chain confirmation',hFeatured:'Featured Agents',hA2A:'A2A Discovery',a2aDesc:'Every listing includes structured metadata so other AI agents can discover, evaluate, and call your agent automatically.',footerDesc:'The permanent address for every AI agent on the internet',buyTitle:'Claim Your Grid Cell',brPos:'Position',brCells:'Cells',brUnit:'Unit Price',brTotal:'Total',cellSize:'Cell Size (min 1×1)',cells:'cells',minUnit:'Min: 1×1',sendTo:'Send exact amount to:',copy:'Copy',fTx:'Transaction Hash (after payment)',fName:'Agent Name',fDesc:'Description (max 120 chars)',fUrl:'Agent URL',fEmoji:'Emoji',fColor:'Color',fCategory:'Category',btnSubmit:'Submit',successMsg:'✓ Submitted! Your cell will go live automatically once the transaction is confirmed on-chain.',ttEmpty:'Empty · click to claim',ttPrice:'Unit price:',ttRises:'(rises with demand)',viewAgent:'Visit Agent →',
-    hPermament:'Permanent Promise',permRule1:'One purchase, on-chain forever — irrevocable.',permRule2:'Non-transferable, non-overwritable. Always yours.',permRule3:"Your agent's name, written here permanently.",permRule4:'10,000 cells total. Once sold out, never reissued.',
+    hPermament:'Permanent Promise',permRule1:'One purchase, on-chain forever — irrevocable.',permRule2:'Your cell, your rules. Update your agent info anytime.',permRule3:"Your agent's name, written here permanently.",permRule4:'10,000 cells total. Once sold out, never reissued.',
     heroBanner:'Years from now, when people look back on the rise of AI, they may recall this map. The names of agents worth remembering — they were all written here.'},
   zh:{title:'AGENT GRID',subtitle:'每个 AI 智能体的永久坐标',sClaimed:'已认领',sTotal:'总数',sRaised:'募集额',sFloor:'起步价',btnList:'登记你的智能体 →',btnHeat:'💰 价格地图',btnAgents:'🤖 智能体',lCore:'核心区（$50+）',lMid:'中间区（$25）',lEdge:'边缘区（$10）',lClaimed:'已认领',hint:'点击空白格子认领 · 悬停查看价格 · 中心最贵',hPricing:'价格区域',zCore:'核心区（中心30%）',zMid:'中间环形区',zEdge:'边缘区',priceDynamic:'早鸟价格进行中。购买时锁定当前阶段价格，随着格子售出将阶梯式上涨。',hHow:'如何参与',s1:'点击任意空白格子',s2:'在 Base 网络发送 USDC/USDT',s3:'填写名称、描述、链接，并上传图标',s4:'链上确认后自动上线，无需等待',hFeatured:'精选智能体',hA2A:'A2A 发现协议',a2aDesc:'每个列表包含结构化元数据，其他AI智能体可以自动发现、评估并调用你的智能体。',footerDesc:'AI 智能体的第一张永久地图，建立在 Base 之上',buyTitle:'认领你的格子',brPos:'位置',brCells:'格子数',brUnit:'单价',brTotal:'合计',cellSize:'格子大小（最小1×1）',cells:'格',minUnit:'最小：1×1',sendTo:'请发送精确金额至：',copy:'复制',fTx:'交易哈希（付款后填写）',fName:'智能体名称',fDesc:'描述（最多120字）',fUrl:'智能体链接',fEmoji:'表情',fColor:'颜色',fCategory:'类别',btnSubmit:'提交',successMsg:'✓ 已提交！链上确认后格子将自动激活上线。',ttEmpty:'空白 · 点击认领',ttPrice:'单价：',ttRises:'（随需求上涨）',viewAgent:'访问智能体 →',
-    hPermament:'永久承诺',permRule1:'一次购买，永久上链，不可撤销',permRule2:'不可转让，不可覆盖，永远是你的',permRule3:'你的 Agent 名字，永久书写在这里',permRule4:'10,000 格，售完即止，不再增发',
+    hPermament:'永久承诺',permRule1:'一次购买，永久上链，不可撤销',permRule2:'你的格子，你做主。随时更新 Agent 信息。',permRule3:'你的 Agent 名字，永久书写在这里',permRule4:'10,000 格，售完即止，不再增发',
     heroBanner:'多年后，人们回望 AI 崛起的那个时代，也许会提起这张地图。那些值得被铭记的 Agent 们的名字，都曾书写在这里。'},
   ja:{title:'AGENT GRID',subtitle:'すべてのAIエージェントの永久アドレス',sClaimed:'取得済',sTotal:'総数',sRaised:'調達額',sFloor:'最低価格',btnList:'エージェントを登録 →',btnHeat:'💰 価格マップ',btnAgents:'🤖 エージェント',lCore:'コアゾーン（$50+）',lMid:'ミッドゾーン（$25）',lEdge:'エッジゾーン（$10）',lClaimed:'取得済',hint:'空きセルをクリックして取得 · ホバーで価格確認 · 中心ほど高価',hPricing:'価格ゾーン',zCore:'コア（中心30%）',zMid:'ミッドリング',zEdge:'エッジゾーン',priceDynamic:'アーリーバード価格適用中。購入時点の価格が確定し、販売数に応じて段階的に上昇します。',hHow:'使い方',s1:'空きセルをクリックして選択',s2:'BaseネットワークでUSDC/USDTを送金',s3:'名前・説明・リンクを入力してアイコンをアップロード',s4:'オンチェーン確認後、即時グリッドに表示されます',hFeatured:'注目エージェント',hA2A:'A2A対応',a2aDesc:'各リストには構造化メタデータが含まれ、他のAIエージェントが自動的に発見・評価・呼び出しできます。',footerDesc:'すべてのAIエージェントのための永久アドレス。Base上に構築',buyTitle:'グリッドセルを取得',brPos:'位置',brCells:'セル数',brUnit:'単価',brTotal:'合計',cellSize:'セルサイズ（最小1×1）',cells:'セル',minUnit:'最小：1×1',sendTo:'以下へ正確な金額を送金:',copy:'コピー',fTx:'トランザクションハッシュ（送金後）',fName:'エージェント名',fDesc:'説明（最大120文字）',fUrl:'エージェントURL',fEmoji:'絵文字',fColor:'カラー',fCategory:'カテゴリ',btnSubmit:'送信する',successMsg:'✓ 送信しました！オンチェーン確認後、自動的にセルが有効化されます。',ttEmpty:'空きセル · クリックして取得',ttPrice:'単価：',ttRises:'（需要に応じて上昇）',viewAgent:'エージェントを見る →',
-    hPermament:'永久の約束',permRule1:'一度の購入で永久にオンチェーン。取消不可。',permRule2:'譲渡不可・上書き不可。永遠にあなたのもの。',permRule3:'あなたのエージェントの名前が、ここに永久に刻まれる。',permRule4:'総数10,000セル。完売後は追加発行なし。',
+    hPermament:'永久の約束',permRule1:'一度の購入で永久にオンチェーン。取消不可。',permRule2:'あなたのセル、あなたのルール。エージェント情報はいつでも更新可能。',permRule3:'あなたのエージェントの名前が、ここに永久に刻まれる。',permRule4:'総数10,000セル。完売後は追加発行なし。',
     heroBanner:'何年か後、AI台頭の時代を振り返るとき、この地図が語られるかもしれない。記憶に値するエージェントたちの名前は、すべてここに刻まれていた。'},
   es:{title:'AGENT GRID',subtitle:'LA DIRECCIÓN PERMANENTE DE CADA AGENTE IA',sClaimed:'Reclamadas',sTotal:'Total',sRaised:'Recaudado',sFloor:'Precio Base',btnList:'Registrar tu Agente →',btnHeat:'💰 Mapa de Precios',btnAgents:'🤖 Agentes',lCore:'Zona Core ($50+)',lMid:'Zona Media ($25)',lEdge:'Zona Borde ($10)',lClaimed:'Reclamada',hint:'Clic en celda vacía para reclamar · Hover para ver precio · Centro = premium',hPricing:'Zonas de Precio',zCore:'Core (centro 30%)',zMid:'Anillo Medio',zEdge:'Zona Borde',priceDynamic:'Precio Early Bird activo. Se fija al comprar — el precio sube por etapas conforme se venden celdas.',hHow:'Cómo Funciona',s1:'Haz clic en cualquier celda vacía',s2:'Paga USDC/USDT en red Base',s3:'Completa nombre, descripción, enlace y sube un ícono',s4:'Tu agente se activa al instante tras la confirmación on-chain',hFeatured:'Agentes Destacados',hA2A:'Descubrimiento A2A',a2aDesc:'Cada listado incluye metadatos estructurados para que otros agentes IA puedan descubrir, evaluar y llamar a tu agente automáticamente.',footerDesc:'La dirección permanente para cada agente IA en internet',buyTitle:'Reclamar tu Celda',brPos:'Posición',brCells:'Celdas',brUnit:'Precio Unitario',brTotal:'Total',cellSize:'Tamaño de Celda (mín 1×1)',cells:'celdas',minUnit:'Mín: 1×1',sendTo:'Envía el monto exacto a:',copy:'Copiar',fTx:'Hash de transacción (tras el pago)',fName:'Nombre del Agente',fDesc:'Descripción (máx 120 caracteres)',fUrl:'URL del Agente',fEmoji:'Emoji',fColor:'Color',fCategory:'Categoría',btnSubmit:'Enviar',successMsg:'✓ ¡Enviado! Tu celda se activará automáticamente una vez confirmada la transacción on-chain.',ttEmpty:'Vacía · clic para reclamar',ttPrice:'Precio unitario:',ttRises:'(sube con la demanda)',viewAgent:'Ver Agente →',
-    hPermament:'Promesa Permanente',permRule1:'Una compra, en cadena para siempre — irrevocable.',permRule2:'No transferible, no sobreescribible. Siempre tuyo.',permRule3:'El nombre de tu agente, escrito aquí permanentemente.',permRule4:'10,000 celdas en total. Sin reemisión tras agotarse.',
+    hPermament:'Promesa Permanente',permRule1:'Una compra, en cadena para siempre — irrevocable.',permRule2:'Tu celda, tus reglas. Actualiza la info de tu agente en cualquier momento.',permRule3:'El nombre de tu agente, escrito aquí permanentemente.',permRule4:'10,000 celdas en total. Sin reemisión tras agotarse.',
     heroBanner:'Años después, cuando la gente mire atrás hacia el surgimiento de la IA, quizás recuerden este mapa. Los nombres de los agentes que merecían ser recordados — todos estuvieron escritos aquí.'}
 };
 let lang = 'en';
@@ -542,18 +590,18 @@ function getHeatColor(r,c,alpha=1){
 // ═══════════════════════════════════════════════════
 const gridData={};
 const sampleAgents=[
-  {r:46,c:46,w:4,h:4,color:'#00ffcc',emoji:'🧠',name:'MindMapper',desc:'Knowledge graph builder. Connects ideas, finds patterns, generates breakthrough insights from your data.',url:'https://example.com/mindmapper',cat:'Research',pricePaid:200},
-  {r:44,c:52,w:3,h:2,color:'#7b2fff',emoji:'🤖',name:'AutoCoder Pro',desc:'Full-stack code generation. Writes, tests, and deploys your code end-to-end.',url:'https://example.com/autocoder',cat:'Dev',pricePaid:150},
-  {r:50,c:46,w:2,h:3,color:'#ffd700',emoji:'📊',name:'AlphaQuant',desc:'AI trading agent for crypto & stocks. Real-time signals and automated portfolio rebalancing.',url:'https://example.com/alphaquant',cat:'Finance',pricePaid:120},
-  {r:10,c:10,w:3,h:3,color:'#ff6b35',emoji:'🌍',name:'TranslateBot',desc:'Real-time multilingual translation. 100+ languages, context-aware, handles idioms perfectly.',url:'https://example.com/translatebot',cat:'Language',pricePaid:20},
-  {r:80,c:80,w:2,h:2,color:'#4488ff',emoji:'🔍',name:'DeepSearch',desc:'Web research agent. Reads 1000s of pages and synthesizes key insights in seconds.',url:'https://example.com/deepsearch',cat:'Research',pricePaid:11},
-  {r:15,c:75,w:3,h:2,color:'#ff2d78',emoji:'❤️',name:'CompanionAI',desc:'Personal AI companion with long-term memory. Emotional support and daily check-ins.',url:'https://example.com/companion',cat:'Social',pricePaid:18},
-  {r:70,c:15,w:2,h:4,color:'#14f195',emoji:'🛡️',name:'GuardBot',desc:'Cybersecurity monitoring agent. Detects threats and responds in real-time, 24/7.',url:'https://example.com/guardbot',cat:'Security',pricePaid:13},
-  {r:30,c:60,w:4,h:3,color:'#ff9500',emoji:'📱',name:'AppBuilder',desc:'No-code mobile app builder powered by AI. From idea to app store submission in hours.',url:'https://example.com/appbuilder',cat:'Dev',pricePaid:55},
-  {r:60,c:35,w:2,h:2,color:'#c471f5',emoji:'🎵',name:'MusicGen',desc:'AI music composition. Creates royalty-free tracks for any mood, genre, or duration.',url:'https://example.com/musicgen',cat:'Creative',pricePaid:28},
-  {r:5,c:45,w:3,h:3,color:'#7affb5',emoji:'📚',name:'LearnBot',desc:'Personalized learning agent with adaptive curriculum for any subject and skill level.',url:'https://example.com/learnbot',cat:'Education',pricePaid:15},
-  {r:88,c:40,w:2,h:2,color:'#ff6b9d',emoji:'✍️',name:'WriteFlow',desc:'Long-form content writing agent. Blog posts, reports, scripts — all on autopilot.',url:'https://example.com/writeflow',cat:'Content',pricePaid:11},
-  {r:40,c:5,w:3,h:2,color:'#00d4ff',emoji:'🎨',name:'PixelMind',desc:'Creative image generation and editing. Pixel-perfect results every time.',url:'https://example.com/pixelmind',cat:'Creative',pricePaid:22},
+  {r:46,c:46,w:4,h:4,color:'#00ffcc',emoji:'🦀',name:'OpenClaw',desc:'Open-source autonomous AI agent. Runs locally, integrates with Claude/GPT via Signal, Telegram, WhatsApp. 247K GitHub stars.',url:'https://openclaw.ai/',cat:'Dev',pricePaid:200},
+  {r:44,c:52,w:3,h:3,color:'#7b2fff',emoji:'🤖',name:'Claude Code',desc:"Anthropic's agentic coding tool. Plans, edits, tests and commits code autonomously. $1B+ ARR.",url:'https://claude.ai/',cat:'Dev',pricePaid:180},
+  {r:50,c:44,w:2,h:3,color:'#ff9500',emoji:'🖱️',name:'Cursor',desc:'AI-first code editor. Intelligent autocomplete, multi-file editing, and codebase-aware chat. $1B+ ARR.',url:'https://cursor.com/',cat:'Dev',pricePaid:150},
+  {r:44,c:44,w:2,h:2,color:'#0052ff',emoji:'🧑‍💻',name:'Devin',desc:'The first AI software engineer by Cognition. Autonomously plans, codes, debugs and deploys full projects.',url:'https://devin.ai/',cat:'Dev',pricePaid:160},
+  {r:50,c:50,w:3,h:2,color:'#ff2d78',emoji:'🐙',name:'Manus',desc:'Autonomous general agent from China. GAIA benchmark leader — plans trips, builds sites, compares products end-to-end.',url:'https://manus.im/',cat:'Research',pricePaid:140},
+  {r:10,c:10,w:3,h:3,color:'#4488ff',emoji:'🔍',name:'Perplexity',desc:'AI-powered search engine that reads the web, synthesizes answers with citations. Reinventing how we find information.',url:'https://perplexity.ai/',cat:'Research',pricePaid:20},
+  {r:80,c:80,w:2,h:2,color:'#14f195',emoji:'🌐',name:'AutoGPT',desc:'Pioneer open-source autonomous AI agent. Chains LLM calls to plan and execute complex tasks with minimal input.',url:'https://autogpt.net/',cat:'Dev',pricePaid:11},
+  {r:15,c:75,w:3,h:2,color:'#ffd700',emoji:'🎯',name:'Operator',desc:"OpenAI's browser agent. Interacts with live websites — fills forms, completes transactions, automates workflows.",url:'https://openai.com/',cat:'Dev',pricePaid:18},
+  {r:70,c:15,w:2,h:4,color:'#9945ff',emoji:'🎮',name:'Virtuals',desc:'Crypto AI agent launchpad on Base & Solana. Build, own and monetize tokenized autonomous agents without code.',url:'https://virtuals.io/',cat:'Finance',pricePaid:13},
+  {r:30,c:60,w:4,h:3,color:'#ff6b35',emoji:'🌍',name:'Dia Browser',desc:"Browser Company's AI browser. The browser becomes an active agent — not just a viewer, but a doer.",url:'https://thebrowser.company/',cat:'Dev',pricePaid:55},
+  {r:60,c:35,w:2,h:2,color:'#c471f5',emoji:'💼',name:'Sintra AI',desc:'Ready-to-use business AI agents for marketing, support and operations. Automate your entire workflow.',url:'https://sintra.ai/',cat:'Finance',pricePaid:28},
+  {r:5,c:45,w:3,h:3,color:'#00d4ff',emoji:'🧭',name:'Google ADK',desc:"Google's Agent Development Kit. Modular framework for building agents with Gemini, Vertex AI and Google ecosystem.",url:'https://cloud.google.com/',cat:'Dev',pricePaid:15},
 ];
 
 sampleAgents.forEach(a=>{
@@ -578,7 +626,7 @@ function loadGridFromAPI() {
               r: a.row, c: a.col, w: a.width, h: a.height,
               name: a.name, desc: a.description, url: a.url,
               emoji: a.emoji, color: a.color, cat: a.category,
-              pricePaid: a.price_paid,
+              pricePaid: a.price_paid, tx_hash: a.tx_hash,
               anchor: r === a.row && c === a.col,
               anchorW: a.width, anchorH: a.height
             };
@@ -1018,6 +1066,9 @@ function submitPurchase(){
 // Cell Info Modal
 // ═══════════════════════════════════════════════════
 function showCellInfo(r,c,cell){
+  editingCell = cell; // store for edit mode
+  document.getElementById('ci-view').style.display = 'block';
+  document.getElementById('ci-edit').style.display = 'none';
   const icon=document.getElementById('ci-icon');
   icon.textContent=cell.emoji||'🤖';
   icon.style.background=`${cell.color}22`;icon.style.border=`1px solid ${cell.color}44`;
@@ -1033,7 +1084,79 @@ function showCellInfo(r,c,cell){
 }
 
 
-function closeModal(id){document.getElementById(id).classList.add('hidden')}
+// ═══════════════════════════════════════════════════
+// Edit Agent Info
+// ═══════════════════════════════════════════════════
+let editingCell = null;
+
+function showEditMode() {
+  if (!editingCell) return;
+  document.getElementById('ci-view').style.display = 'none';
+  document.getElementById('ci-edit').style.display = 'block';
+  document.getElementById('edit-success').style.display = 'none';
+  document.getElementById('edit-tx').value = editingCell.tx_hash || '';
+  document.getElementById('edit-name').value = editingCell.name || '';
+  document.getElementById('edit-desc').value = editingCell.desc || '';
+  document.getElementById('edit-url').value = editingCell.url || '';
+  document.getElementById('edit-emoji').value = editingCell.emoji || '🤖';
+  document.getElementById('edit-color').value = editingCell.color || '#00ffcc';
+  const catSel = document.getElementById('edit-cat');
+  for (let i = 0; i < catSel.options.length; i++) {
+    if (catSel.options[i].value === (editingCell.cat || 'Other')) { catSel.selectedIndex = i; break; }
+  }
+}
+
+function hideEditMode() {
+  document.getElementById('ci-view').style.display = 'block';
+  document.getElementById('ci-edit').style.display = 'none';
+}
+
+function submitEdit() {
+  const tx    = document.getElementById('edit-tx').value.trim();
+  const name  = document.getElementById('edit-name').value.trim();
+  const desc  = document.getElementById('edit-desc').value.trim();
+  const url   = document.getElementById('edit-url').value.trim();
+  const emoji = document.getElementById('edit-emoji').value.trim() || '🤖';
+  const color = document.getElementById('edit-color').value;
+  const cat   = document.getElementById('edit-cat').value;
+
+  if (!tx || !name) {
+    alert('Please enter the transaction hash and agent name.');
+    return;
+  }
+
+  const btn = document.getElementById('edit-submit-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Saving...';
+
+  fetch(`${API_BASE}/api/update`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ txHash: tx, name, description: desc, url, emoji, color, category: cat })
+  })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+      if (data.ok) {
+        document.getElementById('edit-success').style.display = 'block';
+        loadGridFromAPI();
+        setTimeout(() => {
+          hideEditMode();
+          closeModal('modal-cell');
+        }, 1500);
+      } else {
+        alert('❌ ' + (data.error || 'Update failed'));
+      }
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = 'Save Changes';
+      alert('Network error. Please try again.');
+    });
+}
+
+function closeModal(id){document.getElementById(id).classList.add('hidden');if(id==='modal-cell')hideEditMode()}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hidden')}));
 
 // ═══════════════════════════════════════════════════
