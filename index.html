@@ -435,6 +435,24 @@
         <span id="ci-price-paid"></span>
       </div>
       <button class="sub-btn" style="background:#2a2a5a;margin-top:6px" onclick="showEditMode()" data-i18n="btnEdit">Edit Agent Info</button>
+
+      <!-- For Sale banner (shown when cell is listed) -->
+      <div id="ci-forsale-banner" style="display:none;background:#14f1950d;border:1px solid #14f19533;border-radius:10px;padding:14px;margin-top:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="color:#14f195;font-weight:700;font-size:.85rem">For Sale</span>
+          <span style="color:#14f195;font-weight:800;font-size:1.2rem" id="ci-sale-price">$0</span>
+        </div>
+        <div style="font-size:.72rem;color:#8888aa;margin-bottom:10px">
+          Buyer pays: <span id="ci-buyer-pays" style="color:#e0e0ff">$0</span> (includes 10% platform fee)
+        </div>
+        <button class="sub-btn" style="background:linear-gradient(135deg,#14f195,#00d4ff);color:#000;margin-top:0" onclick="showBuyResaleMode()">Buy This Cell</button>
+      </div>
+
+      <!-- List for Sale / Cancel Sale (owner actions) -->
+      <div id="ci-owner-actions" style="display:none;margin-top:10px">
+        <button class="sub-btn" id="ci-list-btn" style="background:#14f19522;border:1px solid #14f19544;color:#14f195;margin-top:0" onclick="showListSaleMode()">List for Sale</button>
+        <button class="sub-btn" id="ci-cancel-btn" style="display:none;background:#ff555522;border:1px solid #ff555544;color:#ff5555;margin-top:0" onclick="cancelSale()">Cancel Listing</button>
+      </div>
     </div>
     <!-- Edit mode -->
     <div id="ci-edit" style="display:none">
@@ -479,6 +497,79 @@
         <button class="sub-btn" style="flex:2" onclick="submitEdit()" id="edit-submit-btn">Save Changes</button>
       </div>
       <div class="success-box" id="edit-success" data-i18n="editSuccess">✓ Agent info updated successfully!</div>
+    </div>
+    <!-- List for Sale mode -->
+    <div id="ci-list-sale" style="display:none">
+      <h2 style="margin-bottom:6px;background:linear-gradient(135deg,#14f195,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent">List Cell for Sale</h2>
+      <p style="font-size:.72rem;color:#8888aa;margin-bottom:14px">Set your asking price. Buyers will pay your price + 10% platform fee.</p>
+      <div class="fgroup">
+        <label class="flabel">Transaction Hash (proof of ownership)</label>
+        <input class="finput" id="sale-tx" type="text" placeholder="0x...">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Asking Price (USDC)</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input class="finput" id="sale-price" type="number" min="1" step="1" placeholder="50" style="flex:1">
+          <span style="color:#8888aa;font-size:.78rem;white-space:nowrap">USDC</span>
+        </div>
+        <div style="font-size:.68rem;color:#666688;margin-top:6px">
+          You receive: <span id="sale-you-get" style="color:#14f195">$0</span> · Buyer pays: <span id="sale-buyer-pays" style="color:#e0e0ff">$0</span> · Platform fee: <span style="color:#ff9500">10%</span>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Your Wallet Address (to receive payment)</label>
+        <input class="finput" id="sale-wallet" type="text" placeholder="0x...">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="sub-btn" style="background:#2a2a5a;flex:1" onclick="hideListSaleMode()">Cancel</button>
+        <button class="sub-btn" style="flex:2;background:linear-gradient(135deg,#14f195,#00d4ff);color:#000" onclick="submitListSale()" id="list-sale-btn">List for Sale</button>
+      </div>
+      <div class="success-box" id="list-sale-success">✓ Your cell is now listed for sale!</div>
+    </div>
+    <!-- Buy Resale mode -->
+    <div id="ci-buy-resale" style="display:none">
+      <h2 style="margin-bottom:6px;background:linear-gradient(135deg,#14f195,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Buy This Cell</h2>
+      <p class="modal-sub" id="resale-sub">MindMapper · Core Zone</p>
+      <div class="price-breakdown">
+        <div class="price-row"><span class="label">Seller's Price</span><span class="val" id="resale-seller-price">$0</span></div>
+        <div class="price-row"><span class="label">Platform Fee (10%)</span><span class="val" id="resale-fee">$0</span></div>
+        <div class="price-row total"><span class="label">You Pay</span><span class="val" id="resale-total">$0</span></div>
+      </div>
+      <div class="pay-box">
+        <div class="chain-badges">
+          <span class="badge badge-base">Base Network</span>
+          <span class="badge badge-usdc">USDC</span>
+          <span class="badge badge-usdt">USDT</span>
+        </div>
+        <div class="pay-amount" id="resale-pay-amount">$0 <span>USDC</span></div>
+        <div class="pay-label">Send exact amount to:</div>
+        <div class="wallet-row">
+          <div class="wallet-addr">0x6fC3E15f1901AF02A986BccD3201f345BB4A4bfF</div>
+          <button class="copy-btn" onclick="copyWallet()">Copy</button>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Transaction Hash (after payment)</label>
+        <input class="finput" id="resale-tx" type="text" placeholder="0x...">
+      </div>
+      <p style="font-size:.72rem;color:#666688;margin-bottom:10px">Optionally update the agent info (or keep current):</p>
+      <div class="fgroup">
+        <label class="flabel">Agent Name</label>
+        <input class="finput" id="resale-name" type="text">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Description</label>
+        <input class="finput" id="resale-desc" type="text" maxlength="120">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Agent URL</label>
+        <input class="finput" id="resale-url" type="url">
+      </div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="sub-btn" style="background:#2a2a5a;flex:1" onclick="hideBuyResaleMode()">Cancel</button>
+        <button class="sub-btn" style="flex:2;background:linear-gradient(135deg,#14f195,#00d4ff);color:#000" onclick="submitBuyResale()" id="buy-resale-btn">Confirm Purchase</button>
+      </div>
+      <div class="success-box" id="resale-success">✓ Purchase complete! You are now the owner of this cell.</div>
     </div>
   </div>
 </div>
@@ -627,6 +718,7 @@ function loadGridFromAPI() {
               name: a.name, desc: a.description, url: a.url,
               emoji: a.emoji, color: a.color, cat: a.category,
               pricePaid: a.price_paid, tx_hash: a.tx_hash,
+              cellId: a.id, forSale: a.for_sale, askingPrice: a.asking_price,
               anchor: r === a.row && c === a.col,
               anchorW: a.width, anchorH: a.height
             };
@@ -734,6 +826,22 @@ function drawGrid(){
         while(ctx.measureText(name).width>maxW&&name.length>2) name=name.slice(0,-1);
         if(name!==cell.name) name=name.slice(0,-1)+'…';
         ctx.fillText(name,cx,cy+emojiSize*0.22);
+      }
+
+      // "For Sale" indicator — green pulsing border + $ badge
+      if(cell.forSale){
+        const pulse=0.5+0.5*Math.sin(Date.now()/300);
+        ctx.strokeStyle=`rgba(20,241,149,${0.4+pulse*0.6})`;
+        ctx.lineWidth=2;
+        ctx.setLineDash([4,3]);
+        ctx.strokeRect(x,y,bw,bh);
+        ctx.setLineDash([]);
+        // $ badge top-right
+        const badgeSize=Math.max(8,cellSz*0.7);
+        ctx.fillStyle='#14f195';
+        ctx.font=`bold ${badgeSize}px sans-serif`;
+        ctx.textAlign='right';ctx.textBaseline='top';
+        ctx.fillText('$',x+bw-2,y+2);
       }
     }
   }
@@ -863,9 +971,10 @@ canvas.addEventListener('mousemove',e=>{
   if(lastHover!==k){drawGrid();drawHighlight(row,col);lastHover=k;}
   const cell=gridData[k], sold=totalSold(), price=getCellPrice(row,col,sold);
   if(cell){
+    const saleTag = cell.forSale ? ` · <span style="color:#14f195;font-weight:700">FOR SALE $${cell.askingPrice}</span>` : '';
     showTip(e,`${cell.emoji||'🤖'} ${cell.name}`,cell.color||'#00ffcc',
       cell.desc.slice(0,70)+(cell.desc.length>70?'…':''),
-      `<span style="color:#666688;font-size:.7rem">${getZoneName(row,col)} · ${t('lClaimed')}</span>`,
+      `<span style="color:#666688;font-size:.7rem">${getZoneName(row,col)} · ${t('lClaimed')}${saleTag}</span>`,
       cell.color||'#2a2a5a',`linear-gradient(135deg,${cell.color}0d,rgba(8,8,26,.97))`);
   } else {
     showTip(e,t('ttEmpty'),'#aaaacc',getZoneName(row,col),
@@ -1069,6 +1178,8 @@ function showCellInfo(r,c,cell){
   editingCell = cell; // store for edit mode
   document.getElementById('ci-view').style.display = 'block';
   document.getElementById('ci-edit').style.display = 'none';
+  document.getElementById('ci-list-sale').style.display = 'none';
+  document.getElementById('ci-buy-resale').style.display = 'none';
   const icon=document.getElementById('ci-icon');
   icon.textContent=cell.emoji||'🤖';
   icon.style.background=`${cell.color}22`;icon.style.border=`1px solid ${cell.color}44`;
@@ -1080,6 +1191,36 @@ function showCellInfo(r,c,cell){
   link.style.borderColor=`${cell.color}44`;link.style.color=cell.color;
   document.getElementById('ci-date').textContent='';
   document.getElementById('ci-price-paid').textContent=cell.pricePaid?`Paid $${cell.pricePaid} USDC`:'';
+
+  // For Sale banner (visible to everyone when cell is listed)
+  const saleBanner = document.getElementById('ci-forsale-banner');
+  if (cell.forSale && cell.askingPrice > 0) {
+    const fee = Math.round(cell.askingPrice * 0.1 * 100) / 100;
+    const buyerTotal = Math.round((cell.askingPrice + fee) * 100) / 100;
+    document.getElementById('ci-sale-price').textContent = `$${cell.askingPrice}`;
+    document.getElementById('ci-buyer-pays').textContent = `$${buyerTotal}`;
+    saleBanner.style.display = 'block';
+  } else {
+    saleBanner.style.display = 'none';
+  }
+
+  // Owner actions (list/cancel sale) — always shown, ownership verified server-side
+  const ownerActions = document.getElementById('ci-owner-actions');
+  const listBtn = document.getElementById('ci-list-btn');
+  const cancelBtn = document.getElementById('ci-cancel-btn');
+  if (cell.tx_hash) {
+    ownerActions.style.display = 'block';
+    if (cell.forSale) {
+      listBtn.style.display = 'none';
+      cancelBtn.style.display = 'block';
+    } else {
+      listBtn.style.display = 'block';
+      cancelBtn.style.display = 'none';
+    }
+  } else {
+    ownerActions.style.display = 'none';
+  }
+
   document.getElementById('modal-cell').classList.remove('hidden');
 }
 
@@ -1156,7 +1297,162 @@ function submitEdit() {
     });
 }
 
-function closeModal(id){document.getElementById(id).classList.add('hidden');if(id==='modal-cell')hideEditMode()}
+function closeModal(id){
+  document.getElementById(id).classList.add('hidden');
+  if(id==='modal-cell'){hideEditMode();hideListSaleMode();hideBuyResaleMode();}
+}
+
+// ═══════════════════════════════════════════════════
+// List for Sale
+// ═══════════════════════════════════════════════════
+function showListSaleMode() {
+  if (!editingCell) return;
+  document.getElementById('ci-view').style.display = 'none';
+  document.getElementById('ci-list-sale').style.display = 'block';
+  document.getElementById('list-sale-success').style.display = 'none';
+  document.getElementById('sale-tx').value = editingCell.tx_hash || '';
+  document.getElementById('sale-price').value = '';
+  document.getElementById('sale-wallet').value = '';
+  document.getElementById('sale-you-get').textContent = '$0';
+  document.getElementById('sale-buyer-pays').textContent = '$0';
+}
+function hideListSaleMode() {
+  document.getElementById('ci-view').style.display = 'block';
+  document.getElementById('ci-list-sale').style.display = 'none';
+}
+
+// Live price preview
+document.addEventListener('input', e => {
+  if (e.target.id === 'sale-price') {
+    const p = parseFloat(e.target.value) || 0;
+    document.getElementById('sale-you-get').textContent = `$${p}`;
+    document.getElementById('sale-buyer-pays').textContent = `$${Math.round(p * 1.1 * 100) / 100}`;
+  }
+});
+
+function submitListSale() {
+  const txHash = document.getElementById('sale-tx').value.trim();
+  const askingPrice = parseFloat(document.getElementById('sale-price').value);
+  const sellerWallet = document.getElementById('sale-wallet').value.trim();
+
+  if (!txHash || !askingPrice || !sellerWallet) {
+    alert('Please fill in all fields.');
+    return;
+  }
+
+  const btn = document.getElementById('list-sale-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Listing...';
+
+  fetch(`${API_BASE}/api/list-sale`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ txHash, askingPrice, sellerWallet })
+  })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = 'List for Sale';
+      if (data.ok) {
+        document.getElementById('list-sale-success').style.display = 'block';
+        loadGridFromAPI();
+        setTimeout(() => { hideListSaleMode(); closeModal('modal-cell'); }, 1500);
+      } else {
+        alert('❌ ' + (data.error || 'Failed to list'));
+      }
+    })
+    .catch(() => { btn.disabled = false; btn.textContent = 'List for Sale'; alert('Network error.'); });
+}
+
+function cancelSale() {
+  if (!editingCell || !editingCell.tx_hash) return;
+  const txHash = prompt('Enter your transaction hash to confirm cancellation:');
+  if (!txHash) return;
+
+  fetch(`${API_BASE}/api/cancel-sale`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ txHash })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        alert('✓ Listing cancelled.');
+        loadGridFromAPI();
+        closeModal('modal-cell');
+      } else {
+        alert('❌ ' + (data.error || 'Failed to cancel'));
+      }
+    })
+    .catch(() => alert('Network error.'));
+}
+
+// ═══════════════════════════════════════════════════
+// Buy Resale
+// ═══════════════════════════════════════════════════
+function showBuyResaleMode() {
+  if (!editingCell) return;
+  document.getElementById('ci-view').style.display = 'none';
+  document.getElementById('ci-buy-resale').style.display = 'block';
+  document.getElementById('resale-success').style.display = 'none';
+
+  const price = editingCell.askingPrice;
+  const fee = Math.round(price * 0.1 * 100) / 100;
+  const total = Math.round((price + fee) * 100) / 100;
+
+  document.getElementById('resale-sub').textContent = `${editingCell.name} · ${editingCell.cat || 'Agent'}`;
+  document.getElementById('resale-seller-price').textContent = `$${price}`;
+  document.getElementById('resale-fee').textContent = `$${fee}`;
+  document.getElementById('resale-total').textContent = `$${total}`;
+  document.getElementById('resale-pay-amount').innerHTML = `$${total} <span>USDC</span>`;
+  document.getElementById('resale-tx').value = '';
+  document.getElementById('resale-name').value = editingCell.name || '';
+  document.getElementById('resale-desc').value = editingCell.desc || '';
+  document.getElementById('resale-url').value = editingCell.url || '';
+}
+function hideBuyResaleMode() {
+  document.getElementById('ci-view').style.display = 'block';
+  document.getElementById('ci-buy-resale').style.display = 'none';
+}
+
+function submitBuyResale() {
+  const buyerTxHash = document.getElementById('resale-tx').value.trim();
+  const name = document.getElementById('resale-name').value.trim();
+  const desc = document.getElementById('resale-desc').value.trim();
+  const url = document.getElementById('resale-url').value.trim();
+
+  if (!buyerTxHash) { alert('Please enter your transaction hash.'); return; }
+  if (!editingCell || !editingCell.cellId) { alert('Cell data missing.'); return; }
+
+  const btn = document.getElementById('buy-resale-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Verifying...';
+
+  fetch(`${API_BASE}/api/buy-resale`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      cellId: editingCell.cellId,
+      buyerTxHash,
+      name: name || undefined,
+      description: desc || undefined,
+      url: url || undefined
+    })
+  })
+    .then(r => r.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = 'Confirm Purchase';
+      if (data.ok) {
+        document.getElementById('resale-success').style.display = 'block';
+        loadGridFromAPI();
+        setTimeout(() => { hideBuyResaleMode(); closeModal('modal-cell'); }, 2000);
+      } else {
+        alert('❌ ' + (data.error || 'Purchase failed'));
+      }
+    })
+    .catch(() => { btn.disabled = false; btn.textContent = 'Confirm Purchase'; alert('Network error.'); });
+}
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hidden')}));
 
 // ═══════════════════════════════════════════════════
@@ -1233,6 +1529,12 @@ loadGridFromAPI();
 })();
 
 setInterval(loadGridFromAPI, 30000); // refresh every 30s
+
+// Animate "For Sale" pulsing indicators
+let hasForSale = false;
+function checkForSale(){ hasForSale = Object.values(gridData).some(c => c.forSale && c.anchor); }
+setInterval(() => { if(hasForSale) drawGrid(); }, 500);
+setInterval(checkForSale, 5000);
 </script>
 </body>
 </html>
