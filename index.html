@@ -725,12 +725,12 @@ const sampleAgents=[
 sampleAgents.forEach(a=>{
   for(let r=a.r;r<a.r+a.h&&r<ROWS;r++){
     for(let c=a.c;c<a.c+a.w&&c<COLS;c++){
-      gridData[`${r}_${c}`]={...a,anchor:r===a.r&&c===a.c,anchorW:a.w,anchorH:a.h};
+      gridData[`${r}_${c}`]={...a,sample:true,anchor:r===a.r&&c===a.c,anchorW:a.w,anchorH:a.h};
     }
   }
 });
 
-function totalSold(){return Object.keys(gridData).length}
+function totalSold(){return Object.values(gridData).filter(c=>!c.sample).length}
 
 function loadGridFromAPI() {
   fetch(`${API_BASE}/api/grid`)
