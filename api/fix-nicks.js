@@ -40,8 +40,8 @@ module.exports = async (req, res) => {
 
     let count = 0;
     for (const [old, nw] of fixes) {
-      const result = await sql`UPDATE guestbook SET nickname = ${nw} WHERE nickname = ${old}`;
-      if (result.count > 0) count += result.count;
+      const result = await sql`UPDATE guestbook SET nickname = ${nw} WHERE nickname = ${old} RETURNING id`;
+      count += result.length;
     }
 
     return res.json({ success: true, updated: count });
