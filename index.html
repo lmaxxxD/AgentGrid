@@ -430,9 +430,16 @@
       </div>
       <p class="cell-desc" id="ci-desc"></p>
       <a href="#" class="cell-link" id="ci-link" target="_blank" rel="noopener">Visit Agent →</a>
-      <div class="cell-meta" style="margin-bottom:14px">
-        <span id="ci-date"></span>
-        <span id="ci-price-paid"></span>
+      <div id="ci-origin" style="background:#08081a;border:1px solid #1e1e42;border-radius:10px;padding:14px;margin:14px 0;font-family:monospace">
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:#444466;margin-bottom:10px">CERTIFICATE OF ORIGIN</div>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.72rem">
+          <span style="color:#444466">COORDINATE</span><span style="color:#00ffcc" id="ci-coord">(0, 0)</span>
+          <span style="color:#444466">ZONE</span><span style="color:#8888aa" id="ci-zone">—</span>
+          <span style="color:#444466">BLOCK</span><span style="color:#8888aa" id="ci-block">1 x 1</span>
+          <span style="color:#444466">GENESIS</span><span style="color:#8888aa" id="ci-genesis">—</span>
+          <span style="color:#444466">ON-CHAIN</span><span style="color:#8888aa;word-break:break-all" id="ci-txhash">—</span>
+        </div>
+        <div style="border-top:1px solid #1e1e42;margin-top:10px;padding-top:8px;font-size:.6rem;color:#333355;text-align:center;letter-spacing:1px">PERMANENT ADDRESS ON THE AGENT GRID</div>
       </div>
       <button class="sub-btn" style="background:#2a2a5a;margin-top:6px" onclick="showEditMode()" data-i18n="btnEdit">Edit Agent Info</button>
 
@@ -1077,8 +1084,11 @@ function showCellInfo(r,c,cell){
   const link=document.getElementById('ci-link');
   link.href=cell.url||'#';link.textContent=t('viewAgent');
   link.style.borderColor=`${cell.color}44`;link.style.color=cell.color;
-  document.getElementById('ci-date').textContent='';
-  document.getElementById('ci-price-paid').textContent=cell.pricePaid?`Paid $${cell.pricePaid} USDC`:'';
+  document.getElementById('ci-coord').textContent=`(${c}, ${r})`;
+  document.getElementById('ci-zone').textContent=getZoneName(r,c);
+  document.getElementById('ci-block').textContent=`${cell.anchorW||1} x ${cell.anchorH||1} (${(cell.anchorW||1)*(cell.anchorH||1)} cells)`;
+  document.getElementById('ci-genesis').textContent=cell.pricePaid?`$${cell.pricePaid} USDC`:'—';
+  document.getElementById('ci-txhash').innerHTML=cell.tx_hash?`<a href="https://basescan.org/tx/${cell.tx_hash}" target="_blank" style="color:#4488ff;text-decoration:none">${cell.tx_hash.slice(0,10)}...${cell.tx_hash.slice(-8)}</a>`:'SAMPLE';
 
   document.getElementById('modal-cell').classList.remove('hidden');
 }
