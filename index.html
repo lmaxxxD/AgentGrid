@@ -1600,8 +1600,16 @@ function closeModal(id){
   document.getElementById(id).classList.add('hidden');
   if(id==='modal-buy'){
     const rid=currentReservationId;
+    const ls=lockedSel;
     lockedSel=null;currentReservationId=null;
     if(reservationTimer){clearInterval(reservationTimer);reservationTimer=null;}
+    // Immediately clear local reserved cells so UI unblocks instantly
+    if(ls){
+      for(let r=ls.r1;r<ls.r1+(ls.h||1);r++)
+        for(let c=ls.c1;c<ls.c1+(ls.w||1);c++)
+          delete reservedCells[`${r}_${c}`];
+      drawGrid();
+    }
     if(rid){
       fetch(`${API_BASE}/api/unreserve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reservationId:rid})})
         .finally(()=>loadGridFromAPI());
