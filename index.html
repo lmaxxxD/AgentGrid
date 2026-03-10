@@ -794,6 +794,21 @@ function drawGrid(){
     }
   }
 
+  // Draw locked selection while purchase modal is open
+  if(lockedSel&&!document.getElementById('modal-buy').classList.contains('hidden')){
+    const ls=lockedSel;
+    const x=ls.c1*cellSz,y=ls.r1*cellSz,bw=ls.w*cellSz,bh=ls.h*cellSz;
+    ctx.fillStyle='rgba(0,255,204,0.12)';
+    ctx.fillRect(x,y,bw,bh);
+    ctx.strokeStyle='#00ffcc';ctx.lineWidth=2;ctx.setLineDash([6,3]);
+    ctx.strokeRect(x+1,y+1,bw-2,bh-2);ctx.setLineDash([]);
+    // Label
+    const fs=Math.min(Math.max(cellSz*1.1,10),14);
+    ctx.font=`bold ${fs}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillText(`${ls.w}×${ls.h}`,x+bw/2+1,y+bh/2+1);
+    ctx.fillStyle='#00ffcc';ctx.fillText(`${ls.w}×${ls.h}`,x+bw/2,y+bh/2);
+  }
+
   updateStats();
 }
 
@@ -1177,9 +1192,10 @@ setupIconPicker(
 // ═══════════════════════════════════════════════════
 // Purchase Modal
 // ═══════════════════════════════════════════════════
-let selRow=50,selCol=50;
+let selRow=50,selCol=50,lockedSel=null;
 function showPurchase(r,c,w=1,h=1){
   selRow=r!==undefined?r:50;selCol=c!==undefined?c:50;
+  lockedSel={r1:selRow,c1:selCol,w,h}; drawGrid();
   document.getElementById('buy-sub').textContent=`Cell (${selCol}, ${selRow}) · ${getZoneName(selRow,selCol)}`;
   document.getElementById('cell-w').value=w;document.getElementById('cell-h').value=h;
   document.getElementById('success-box').style.display='none';
@@ -1210,6 +1226,7 @@ function updatePrice(){
   document.getElementById('br-unit').textContent=`$${unitPrice} USDC`;
   document.getElementById('br-total').textContent=`$${total} USDC`;
   document.getElementById('pay-amount').innerHTML=`$${total} <span>USDC</span>`;
+  lockedSel={r1:selRow,c1:selCol,w,h}; drawGrid();
 }
 
 function copyWallet(){
@@ -1521,6 +1538,7 @@ function submitEdit() {
 
 function closeModal(id){
   document.getElementById(id).classList.add('hidden');
+  if(id==='modal-buy'){lockedSel=null;drawGrid();}
   if(id==='modal-cell'){hideEditMode();}
 }
 
