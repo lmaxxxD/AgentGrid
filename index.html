@@ -1599,9 +1599,12 @@ function submitEdit() {
 function closeModal(id){
   document.getElementById(id).classList.add('hidden');
   if(id==='modal-buy'){
+    if(currentReservationId){
+      fetch(`${API_BASE}/api/unreserve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reservationId:currentReservationId})}).catch(()=>{});
+    }
     lockedSel=null;currentReservationId=null;
     if(reservationTimer){clearInterval(reservationTimer);reservationTimer=null;}
-    drawGrid();
+    loadGridFromAPI();
   }
   if(id==='modal-cell'){hideEditMode();}
 }
