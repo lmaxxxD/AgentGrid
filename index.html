@@ -430,6 +430,10 @@
       </div>
       <p class="cell-desc" id="ci-desc"></p>
       <a href="#" class="cell-link" id="ci-link" target="_blank" rel="noopener">Visit Agent →</a>
+      <div id="ci-salute" style="display:flex;align-items:center;gap:10px;margin:14px 0">
+        <button id="ci-salute-btn" onclick="salute()" style="background:#1a1a3a;border:1px solid #2a2a5a;color:#ffcc00;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:.9rem;transition:all .2s">🫡 Salute</button>
+        <span id="ci-salute-count" style="color:#8888aa;font-size:.78rem">0 salutes</span>
+      </div>
       <div id="ci-origin" style="background:#08081a;border:1px solid #1e1e42;border-radius:10px;padding:14px;margin:14px 0;font-family:monospace">
         <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:#444466;margin-bottom:10px">CERTIFICATE OF ORIGIN</div>
         <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.72rem">
@@ -440,6 +444,19 @@
           <span style="color:#444466">ON-CHAIN</span><span style="color:#8888aa;word-break:break-all" id="ci-txhash">—</span>
         </div>
         <div style="border-top:1px solid #1e1e42;margin-top:10px;padding-top:8px;font-size:.6rem;color:#333355;text-align:center;letter-spacing:1px">PERMANENT ADDRESS ON THE AGENT GRID</div>
+      </div>
+      <div id="ci-guestbook" style="margin:14px 0">
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:#444466;margin-bottom:8px">GUESTBOOK</div>
+        <div id="ci-messages" style="max-height:160px;overflow-y:auto;margin-bottom:10px;scrollbar-width:thin;scrollbar-color:#2a2a5a #08081a"></div>
+        <div style="display:flex;gap:6px">
+          <input id="gb-nick" class="finput" style="width:70px;flex-shrink:0;font-size:.72rem;padding:6px 8px" placeholder="Name" maxlength="20">
+          <input id="gb-msg" class="finput" style="flex:1;font-size:.72rem;padding:6px 8px" placeholder="Leave a message..." maxlength="200" onkeydown="if(event.key==='Enter')postGuestbook()">
+          <button onclick="postGuestbook()" style="background:linear-gradient(135deg,#00ffcc,#7b2fff);border:none;color:#000;padding:6px 12px;border-radius:6px;font-weight:700;font-size:.72rem;cursor:pointer;white-space:nowrap">Send</button>
+        </div>
+      </div>
+      <div id="ci-neighbors" style="margin:14px 0">
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:#444466;margin-bottom:8px">NEARBY AGENTS</div>
+        <div id="ci-neighbor-list" style="display:flex;flex-wrap:wrap;gap:6px"></div>
       </div>
       <button class="sub-btn" style="background:#2a2a5a;margin-top:6px" onclick="showEditMode()" data-i18n="btnEdit">Edit Agent Info</button>
 
@@ -1093,9 +1110,156 @@ function showCellInfo(r,c,cell){
   document.getElementById('ci-genesis').textContent=cell.pricePaid?`$${cell.pricePaid} USDC`:'—';
   document.getElementById('ci-txhash').innerHTML=cell.tx_hash?`<a href="https://basescan.org/tx/${cell.tx_hash}" target="_blank" style="color:#4488ff;text-decoration:none">${cell.tx_hash.slice(0,10)}...${cell.tx_hash.slice(-8)}</a>`:'SAMPLE';
 
+  // Social features (DB cells only)
+  const hasCellId = !!cell.cellId;
+  document.getElementById('ci-salute').style.display = hasCellId ? 'flex' : 'none';
+  document.getElementById('ci-guestbook').style.display = hasCellId ? 'block' : 'none';
+  document.getElementById('ci-neighbors').style.display = hasCellId ? 'block' : 'none';
+  if (hasCellId) {
+    loadSaluteStatus(cell.cellId);
+    loadGuestbook(cell.cellId);
+    loadNeighbors(cell.cellId);
+  } else {
+    // Show sample neighbors from gridData
+    showSampleNeighbors(r, c, cell);
+  }
+
   document.getElementById('modal-cell').classList.remove('hidden');
 }
 
+// ═══════════════════════════════════════════════════
+// Social: Salute
+// ═══════════════════════════════════════════════════
+let currentCellId = null;
+
+function loadSaluteStatus(cellId) {
+  currentCellId = cellId;
+  const btn = document.getElementById('ci-salute-btn');
+  const cnt = document.getElementById('ci-salute-count');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  cnt.textContent = '...';
+  fetch(`${API_BASE}/api/salute?cellId=${cellId}`)
+    .then(r => r.json())
+    .then(data => {
+      cnt.textContent = `${data.count} salute${data.count !== 1 ? 's' : ''}`;
+      if (data.saluted) {
+        btn.textContent = '🫡 Saluted';
+        btn.style.opacity = '0.5';
+        btn.disabled = true;
+      } else {
+        btn.textContent = '🫡 Salute';
+      }
+    })
+    .catch(() => { cnt.textContent = ''; });
+}
+
+function salute() {
+  if (!currentCellId) return;
+  const btn = document.getElementById('ci-salute-btn');
+  btn.disabled = true;
+  btn.textContent = '🫡 ...';
+  fetch(`${API_BASE}/api/salute`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cellId: currentCellId })
+  })
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('ci-salute-count').textContent = `${data.count} salute${data.count !== 1 ? 's' : ''}`;
+      btn.textContent = '🫡 Saluted';
+      btn.style.opacity = '0.5';
+    })
+    .catch(() => { btn.disabled = false; btn.textContent = '🫡 Salute'; });
+}
+
+// ═══════════════════════════════════════════════════
+// Social: Guestbook
+// ═══════════════════════════════════════════════════
+function timeAgo(date) {
+  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + 'm ago';
+  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+  return Math.floor(s / 86400) + 'd ago';
+}
+
+function renderMessages(messages) {
+  const el = document.getElementById('ci-messages');
+  if (messages.length === 0) {
+    el.innerHTML = '<div style="font-size:.72rem;color:#333355;padding:8px 0">No messages yet. Be the first!</div>';
+    return;
+  }
+  el.innerHTML = messages.map(m => `
+    <div style="padding:6px 0;border-bottom:1px solid #1e1e42;font-size:.75rem">
+      <span style="color:#00ffcc;font-weight:600">${m.nickname}</span>
+      <span style="color:#333355;margin:0 6px">·</span>
+      <span style="color:#444466">${timeAgo(m.created_at)}</span>
+      <div style="color:#aaaacc;margin-top:2px">${m.message}</div>
+    </div>
+  `).join('');
+}
+
+function loadGuestbook(cellId) {
+  currentCellId = cellId;
+  document.getElementById('ci-messages').innerHTML = '<div style="font-size:.72rem;color:#333355;padding:8px 0">Loading...</div>';
+  document.getElementById('gb-nick').value = '';
+  document.getElementById('gb-msg').value = '';
+  fetch(`${API_BASE}/api/guestbook?cellId=${cellId}`)
+    .then(r => r.json())
+    .then(data => renderMessages(data.messages || []))
+    .catch(() => renderMessages([]));
+}
+
+function postGuestbook() {
+  if (!currentCellId) return;
+  const msg = document.getElementById('gb-msg').value.trim();
+  if (!msg) return;
+  const nick = document.getElementById('gb-nick').value.trim() || 'Anonymous';
+  document.getElementById('gb-msg').value = '';
+  fetch(`${API_BASE}/api/guestbook`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ cellId: currentCellId, nickname: nick, message: msg })
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) loadGuestbook(currentCellId);
+      else alert(data.error || 'Failed to send');
+    })
+    .catch(() => alert('Network error'));
+}
+
+// ═══════════════════════════════════════════════════
+// Social: Neighbors
+// ═══════════════════════════════════════════════════
+function renderNeighborChips(neighbors) {
+  const el = document.getElementById('ci-neighbor-list');
+  if (neighbors.length === 0) {
+    el.innerHTML = '<div style="font-size:.72rem;color:#333355">No nearby agents yet</div>';
+    return;
+  }
+  el.innerHTML = neighbors.map(n => `
+    <div onclick="scrollToAgent(${n.row||n.r},${n.col||n.c})" style="background:#13132e;border:1px solid #2a2a5a;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.72rem;display:flex;align-items:center;gap:6px;transition:border-color .2s" onmouseover="this.style.borderColor='${n.color||'#00ffcc'}'" onmouseout="this.style.borderColor='#2a2a5a'">
+      <span>${n.emoji||'🤖'}</span>
+      <span style="color:#e0e0ff">${n.name}</span>
+    </div>
+  `).join('');
+}
+
+function loadNeighbors(cellId) {
+  document.getElementById('ci-neighbor-list').innerHTML = '<div style="font-size:.72rem;color:#333355">Loading...</div>';
+  fetch(`${API_BASE}/api/neighbors?cellId=${cellId}`)
+    .then(r => r.json())
+    .then(data => renderNeighborChips(data.neighbors || []))
+    .catch(() => renderNeighborChips([]));
+}
+
+function showSampleNeighbors(r, c, cell) {
+  document.getElementById('ci-neighbors').style.display = 'block';
+  const nearby = sampleAgents.filter(a => a.name !== cell.name && Math.abs(a.r - r) + Math.abs(a.c - c) < 15);
+  renderNeighborChips(nearby.slice(0, 6));
+}
 
 // ═══════════════════════════════════════════════════
 // Edit Agent Info
@@ -1197,6 +1361,7 @@ function buildAgentList(){
 }
 
 function scrollToAgent(r,c){
+  closeModal('modal-cell');
   const wrap=document.getElementById('canvas-wrap');
   wrap.scrollLeft=Math.max(0,c*cellSz-150);
   wrap.scrollTop=Math.max(0,r*cellSz-150);
