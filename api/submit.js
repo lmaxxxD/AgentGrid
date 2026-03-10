@@ -1,6 +1,6 @@
 const { sql, initDB }       = require('./_db');
 const { verifyTransaction } = require('./_verifyTx');
-const { ROWS, COLS } = require('./_pricing');
+const { cellPrice, ROWS, COLS } = require('./_pricing');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -8,10 +8,17 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')    return res.status(405).end();
 
-  const { txHash, reservationId, name, description, url, emoji, color, category, icon } = req.body;
+  const { txHash, row, col, width, height, name, description, url, emoji, color, category, icon } = req.body;
 
-  if (!txHash || !name || !reservationId)
+  if (!txHash || !name)
     return res.status(400).json({ error: 'Missing required fields' });
+
+  const r = parseInt(row), c = parseInt(col);
+  const w = Math.min(20, Math.max(1, parseInt(width) || 1));
+  const h = Math.min(20, Math.max(1, parseInt(height) || 1));
+
+  if (r < 0 || r + h > ROWS || c < 0 || c + w > COLS)
+    return res.status(400).json({ error: 'Out of bounds' });
 
   if (!/^0x[0-9a-fA-F]{64}$/.test(txHash))
     return res.status(400).json({ error: 'Invalid transaction hash format' });
@@ -19,21 +26,12 @@ module.exports = async (req, res) => {
   try {
     await initDB();
 
-    // Look up reservation
-    const rsvRows = await sql`SELECT * FROM reservations WHERE id = ${reservationId} AND expires_at > NOW()`;
-    if (rsvRows.length === 0)
-      return res.status(400).json({ error: 'Reservation expired or not found. Please select cells again.' });
-
-    const rsv = rsvRows[0];
-    const r = rsv.row, c = rsv.col, w = rsv.width, h = rsv.height;
-    const expectedPrice = rsv.price;
-
     // Check tx_hash not already used
     const existing = await sql`SELECT id FROM cells WHERE tx_hash = ${txHash}`;
     if (existing.length > 0)
       return res.status(400).json({ error: 'Transaction hash already used' });
 
-    // Double-check cells still available
+    // Check cells still available
     const taken = await sql`
       SELECT id FROM cells
       WHERE NOT (row + height <= ${r} OR row >= ${r + h} OR col + width <= ${c} OR col >= ${c + w})
@@ -41,6 +39,14 @@ module.exports = async (req, res) => {
     `;
     if (taken.length > 0)
       return res.status(400).json({ error: 'One or more selected cells are already taken' });
+
+    // Calculate expected price
+    const soldResult = await sql`SELECT COUNT(*)::int AS n FROM cells`;
+    const sold = soldResult[0].n;
+    let expectedPrice = 0;
+    for (let rr = r; rr < r + h; rr++)
+      for (let cc = c; cc < c + w; cc++)
+        expectedPrice += cellPrice(rr, cc, sold);
 
     // Verify on-chain payment
     const result = await verifyTransaction(txHash, expectedPrice);
@@ -63,9 +69,6 @@ module.exports = async (req, res) => {
         ${(icon || '').slice(0, 20000)}
       )
     `;
-
-    // Remove reservation
-    await sql`DELETE FROM reservations WHERE id = ${reservationId}`;
 
     res.json({ ok: true });
   } catch (err) {
