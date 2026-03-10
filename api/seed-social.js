@@ -28,23 +28,24 @@ module.exports = async (req, res) => {
     // Seed guestbook messages
     const messages = [
       // AutoGPT messages
-      { cell_id: 1, nickname: 'agent_builder', message: 'The OG autonomous agent. This is where it all started. Respect.', ip: '198.51.100.1', ago: '72 hours' },
-      { cell_id: 1, nickname: 'dev_sarah', message: 'I built my first agent because of AutoGPT. Changed my career path forever.', ip: '198.51.100.2', ago: '48 hours' },
-      { cell_id: 1, nickname: 'CryptoNomad', message: 'Bought a cell nearby just to be neighbors with AutoGPT. Worth every cent.', ip: '198.51.100.3', ago: '36 hours' },
-      { cell_id: 1, nickname: 'AIhistorian', message: 'March 2023. The repo that made "autonomous agent" a household word. Historic.', ip: '198.51.100.4', ago: '24 hours' },
-      { cell_id: 1, nickname: 'anon', message: '🫡', ip: '198.51.100.5', ago: '6 hours' },
-      { cell_id: 1, nickname: 'tobi_from_tokyo', message: 'AutoGPT inspired me to quit my job and build agents full-time. No regrets.', ip: '198.51.100.6', ago: '3 hours' },
+      { cell_id: 1, nickname: 'agent_builder', message: 'The OG autonomous agent. This is where it all started. Respect.', ip: '198.51.100.1', hoursAgo: 72 },
+      { cell_id: 1, nickname: 'dev_sarah', message: 'I built my first agent because of AutoGPT. Changed my career path forever.', ip: '198.51.100.2', hoursAgo: 48 },
+      { cell_id: 1, nickname: 'CryptoNomad', message: 'Bought a cell nearby just to be neighbors with AutoGPT. Worth every cent.', ip: '198.51.100.3', hoursAgo: 36 },
+      { cell_id: 1, nickname: 'AIhistorian', message: 'March 2023. The repo that made "autonomous agent" a household word. Historic.', ip: '198.51.100.4', hoursAgo: 24 },
+      { cell_id: 1, nickname: 'anon', message: '🫡', ip: '198.51.100.5', hoursAgo: 6 },
+      { cell_id: 1, nickname: 'tobi_from_tokyo', message: 'AutoGPT inspired me to quit my job and build agents full-time. No regrets.', ip: '198.51.100.6', hoursAgo: 3 },
       // BabyAGI messages
-      { cell_id: 2, nickname: 'minimalist_dev', message: 'Simple, elegant, revolutionary. BabyAGI proved you don\'t need 10K lines to change the world.', ip: '198.51.100.7', ago: '60 hours' },
-      { cell_id: 2, nickname: 'yohei_fan', message: 'Yohei showed us the blueprint. Everything since is a footnote.', ip: '198.51.100.8', ago: '30 hours' },
-      { cell_id: 2, nickname: 'agent_curious', message: 'First agent I ever ran locally. The feeling of watching it think on its own... unforgettable.', ip: '198.51.100.9', ago: '12 hours' },
-      { cell_id: 2, nickname: 'SZ_maker', message: 'From Shenzhen with love. BabyAGI started a fire here too.', ip: '198.51.100.10', ago: '5 hours' },
+      { cell_id: 2, nickname: 'minimalist_dev', message: 'Simple, elegant, revolutionary. BabyAGI proved you don\'t need 10K lines to change the world.', ip: '198.51.100.7', hoursAgo: 60 },
+      { cell_id: 2, nickname: 'yohei_fan', message: 'Yohei showed us the blueprint. Everything since is a footnote.', ip: '198.51.100.8', hoursAgo: 30 },
+      { cell_id: 2, nickname: 'agent_curious', message: 'First agent I ever ran locally. The feeling of watching it think on its own... unforgettable.', ip: '198.51.100.9', hoursAgo: 12 },
+      { cell_id: 2, nickname: 'SZ_maker', message: 'From Shenzhen with love. BabyAGI started a fire here too.', ip: '198.51.100.10', hoursAgo: 5 },
     ];
 
     for (const m of messages) {
+      const ts = new Date(Date.now() - m.hoursAgo * 3600000).toISOString();
       await sql`
         INSERT INTO guestbook (cell_id, nickname, message, visitor_ip, created_at)
-        VALUES (${m.cell_id}, ${m.nickname}, ${m.message}, ${m.ip}, NOW() - INTERVAL ${m.ago})
+        VALUES (${m.cell_id}, ${m.nickname}, ${m.message}, ${m.ip}, ${ts})
       `;
     }
 
