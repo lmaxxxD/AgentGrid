@@ -790,8 +790,17 @@ let dragStart=null, dragCur=null, isDragging=false, lastHover=null;
 
 function getCell(e){
   const rect=canvas.getBoundingClientRect();
-  const col=Math.floor((e.clientX-rect.left)/cellSz);
-  const row=Math.floor((e.clientY-rect.top)/cellSz);
+  const cx=e.touches?e.touches[0].clientX:e.clientX;
+  const cy=e.touches?e.touches[0].clientY:e.clientY;
+  const col=Math.floor((cx-rect.left)/cellSz);
+  const row=Math.floor((cy-rect.top)/cellSz);
+  return {row,col,ok:row>=0&&row<ROWS&&col>=0&&col<COLS};
+}
+function getCellFromTouch(e){
+  const rect=canvas.getBoundingClientRect();
+  const t=e.changedTouches[0];
+  const col=Math.floor((t.clientX-rect.left)/cellSz);
+  const row=Math.floor((t.clientY-rect.top)/cellSz);
   return {row,col,ok:row>=0&&row<ROWS&&col>=0&&col<COLS};
 }
 function dragRect(){
@@ -931,6 +940,63 @@ canvas.addEventListener('mouseup',e=>{
 
   if(selConflict(sel)){
     // Flash red border then bail
+    let n=0;const iv=setInterval(()=>{
+      drawGrid();
+      if(n%2===0){ctx.strokeStyle='#ff5555';ctx.lineWidth=2;ctx.setLineDash([4,3]);
+        ctx.strokeRect(sel.c1*cellSz+1,sel.r1*cellSz+1,sel.w*cellSz-2,sel.h*cellSz-2);ctx.setLineDash([]);}
+      if(++n>5)clearInterval(iv);
+    },120);
+    return;
+  }
+
+  showPurchase(sel.r1,sel.c1,sel.w,sel.h);
+});
+
+// ── Touch events for mobile ──
+canvas.addEventListener('touchstart',e=>{
+  const {row,col,ok}=getCell(e); if(!ok)return;
+  if(gridData[`${row}_${col}`]){dragStart=null;return;}
+  dragStart={r:row,c:col}; dragCur={r:row,c:col}; isDragging=false;
+  e.preventDefault();
+},{passive:false});
+
+canvas.addEventListener('touchmove',e=>{
+  if(!dragStart)return;
+  e.preventDefault();
+  const {row,col,ok}=getCell(e);
+  isDragging=true;
+  if(ok){
+    const clampedR=Math.max(0,Math.min(ROWS-1,row));
+    const clampedC=Math.max(0,Math.min(COLS-1,col));
+    dragCur={
+      r:Math.min(clampedR, dragStart.r+19),
+      c:Math.min(clampedC, dragStart.c+19)
+    };
+    if(clampedR<dragStart.r) dragCur.r=Math.max(clampedR, dragStart.r-19);
+    if(clampedC<dragStart.c) dragCur.c=Math.max(clampedC, dragStart.c-19);
+  }
+  drawGrid(); drawDragSel();
+},{passive:false});
+
+canvas.addEventListener('touchend',e=>{
+  const {row,col,ok}=getCellFromTouch(e);
+
+  if(!dragStart){
+    if(ok&&gridData[`${row}_${col}`])showCellInfo(row,col,gridData[`${row}_${col}`]);
+    return;
+  }
+
+  if(!isDragging){
+    dragStart=null;dragCur=null;isDragging=false; drawGrid();
+    if(ok&&!gridData[`${row}_${col}`])showPurchase(row,col,1,1);
+    return;
+  }
+
+  const sel=dragRect();
+  dragStart=null;dragCur=null;isDragging=false; drawGrid();
+  if(!sel)return;
+
+  if(selConflict(sel)){
     let n=0;const iv=setInterval(()=>{
       drawGrid();
       if(n%2===0){ctx.strokeStyle='#ff5555';ctx.lineWidth=2;ctx.setLineDash([4,3]);
