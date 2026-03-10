@@ -1,4 +1,5 @@
 const { sql, initDB } = require('./_db');
+const { cellPrice } = require('./_pricing');
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,12 +25,23 @@ module.exports = async (req, res) => {
   try {
     await initDB();
 
-    const cell = await sql`SELECT id, for_sale FROM cells WHERE tx_hash = ${txHash}`;
+    const cell = await sql`SELECT id, row, col, width, height, for_sale FROM cells WHERE tx_hash = ${txHash}`;
     if (cell.length === 0)
       return res.status(404).json({ error: 'No cell found with this transaction hash' });
 
     if (cell[0].for_sale)
       return res.status(400).json({ error: 'This cell is already listed for sale' });
+
+    // Calculate minimum asking price = current new-purchase price for this block
+    const sold = await sql`SELECT COUNT(*) AS cnt FROM cells`;
+    const totalSold = parseInt(sold[0].cnt);
+    let minPrice = 0;
+    for (let r = cell[0].row; r < cell[0].row + cell[0].height; r++)
+      for (let c = cell[0].col; c < cell[0].col + cell[0].width; c++)
+        minPrice += cellPrice(r, c, totalSold);
+
+    if (price < minPrice)
+      return res.status(400).json({ error: `Asking price must be at least $${minPrice} (current market price for this position)`, minPrice });
 
     await sql`
       UPDATE cells SET
@@ -39,7 +51,7 @@ module.exports = async (req, res) => {
       WHERE tx_hash = ${txHash}
     `;
 
-    res.json({ ok: true, askingPrice: price, buyerPays: Math.round(price * 1.1 * 100) / 100 });
+    res.json({ ok: true, askingPrice: price, minPrice, buyerPays: Math.round(price * 1.1 * 100) / 100 });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

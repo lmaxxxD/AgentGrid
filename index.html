@@ -532,6 +532,7 @@
         <div style="font-size:.68rem;color:#666688;margin-top:6px">
           You receive: <span id="sale-you-get" style="color:#14f195">$0</span> · Buyer pays: <span id="sale-buyer-pays" style="color:#e0e0ff">$0</span> · Platform fee: <span style="color:#ff9500">10%</span>
         </div>
+        <div id="sale-min-price-hint" style="font-size:.68rem;color:#ff9500;margin-top:4px"></div>
       </div>
       <div class="fgroup">
         <label class="flabel">Your Wallet Address (to receive payment)</label>
@@ -1356,6 +1357,14 @@ function closeModal(id){
 // ═══════════════════════════════════════════════════
 // List for Sale
 // ═══════════════════════════════════════════════════
+function getResaleMinPrice(cell) {
+  const sold = totalSold();
+  let total = 0;
+  for (let r = cell.r; r < cell.r + cell.anchorH; r++)
+    for (let c = cell.c; c < cell.c + cell.anchorW; c++)
+      total += getCellPrice(r, c, sold);
+  return total;
+}
 function showListSaleMode() {
   if (!editingCell) return;
   document.getElementById('ci-view').style.display = 'none';
@@ -1366,6 +1375,10 @@ function showListSaleMode() {
   document.getElementById('sale-wallet').value = '';
   document.getElementById('sale-you-get').textContent = '$0';
   document.getElementById('sale-buyer-pays').textContent = '$0';
+  const minP = getResaleMinPrice(editingCell);
+  document.getElementById('sale-price').min = minP;
+  document.getElementById('sale-price').placeholder = minP;
+  document.getElementById('sale-min-price-hint').textContent = `Minimum asking price: $${minP} (current market price for this position)`;
 }
 function hideListSaleMode() {
   document.getElementById('ci-view').style.display = 'block';
@@ -1388,6 +1401,12 @@ function submitListSale() {
 
   if (!txHash || !askingPrice || !sellerWallet) {
     alert('Please fill in all fields.');
+    return;
+  }
+
+  const minP = getResaleMinPrice(editingCell);
+  if (askingPrice < minP) {
+    alert(`Asking price must be at least $${minP} (current market price).`);
     return;
   }
 
