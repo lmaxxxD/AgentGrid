@@ -38,13 +38,16 @@ module.exports = async (req, res) => {
       ['xiaobing_mama', 'xiaobing_dad'],
     ];
 
+    // Debug: list all nicknames first
+    const allNicks = await sql`SELECT DISTINCT nickname FROM guestbook ORDER BY nickname`;
+
     let count = 0;
     for (const [old, nw] of fixes) {
       const result = await sql`UPDATE guestbook SET nickname = ${nw} WHERE nickname = ${old} RETURNING id`;
       count += result.length;
     }
 
-    return res.json({ success: true, updated: count });
+    return res.json({ success: true, updated: count, allNicks: allNicks.map(n => n.nickname) });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
