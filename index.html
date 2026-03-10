@@ -1064,7 +1064,7 @@ canvas.addEventListener('mouseup',e=>{
 // Stats
 // ═══════════════════════════════════════════════════
 function updateTierDisplay() {
-  const sold = totalSold();
+  const sold = totalClaimed();
   const tier = getCurrentTier(sold);
   const nextTier = PRICE_TIERS[PRICE_TIERS.indexOf(tier) + 1];
 
