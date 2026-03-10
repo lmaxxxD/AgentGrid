@@ -25,6 +25,7 @@ async function initDB() {
   `;
 
   await sql`ALTER TABLE cells ADD COLUMN IF NOT EXISTS salute_count INTEGER NOT NULL DEFAULT 0`;
+  await sql`ALTER TABLE cells ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT ''`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS salutes (

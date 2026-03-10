@@ -8,7 +8,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')    return res.status(405).end();
 
-  const { txHash, row, col, width, height, name, description, url, emoji, color, category } = req.body;
+  const { txHash, row, col, width, height, name, description, url, emoji, color, category, icon } = req.body;
 
   if (!txHash || !name || row == null || col == null)
     return res.status(400).json({ error: 'Missing required fields' });
@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: result.error });
 
     await sql`
-      INSERT INTO cells (row, col, width, height, name, description, url, emoji, color, category, tx_hash, price_paid)
+      INSERT INTO cells (row, col, width, height, name, description, url, emoji, color, category, tx_hash, price_paid, icon)
       VALUES (
         ${r}, ${c}, ${w}, ${h},
         ${name.slice(0, 50)},
@@ -60,7 +60,8 @@ module.exports = async (req, res) => {
         ${color || '#00ffcc'},
         ${category || 'Other'},
         ${txHash},
-        ${result.amountUSD}
+        ${result.amountUSD},
+        ${(icon || '').slice(0, 20000)}
       )
     `;
 

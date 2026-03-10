@@ -394,10 +394,13 @@
     </div>
     <div class="finput-row">
       <div class="fgroup" style="position:relative">
-        <label class="flabel" data-i18n="fEmoji">Emoji</label>
+        <label class="flabel">Icon</label>
         <div style="display:flex;gap:4px;align-items:center">
-          <input class="finput" id="f-emoji" type="text" maxlength="4" placeholder="🤖" style="width:50px;text-align:center;font-size:1.3rem" readonly>
-          <button type="button" id="emoji-toggle" style="background:#1a1a3a;border:1px solid #333366;border-radius:8px;color:#fff;font-size:1.1rem;padding:6px 10px;cursor:pointer">▼</button>
+          <div id="icon-preview" style="width:42px;height:42px;border:1px solid #333366;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:#1a1a3a;overflow:hidden">🤖</div>
+          <input class="finput" id="f-emoji" type="hidden" value="🤖">
+          <input type="file" id="f-icon-file" accept="image/*" style="display:none">
+          <button type="button" id="emoji-toggle" style="background:#1a1a3a;border:1px solid #333366;border-radius:8px;color:#fff;font-size:.75rem;padding:6px 8px;cursor:pointer">Emoji ▼</button>
+          <button type="button" id="icon-upload-btn" style="background:#1a1a3a;border:1px solid #333366;border-radius:8px;color:#fff;font-size:.75rem;padding:6px 8px;cursor:pointer">Upload</button>
         </div>
         <div id="emoji-picker" style="display:none;position:absolute;top:100%;left:0;z-index:999;background:#12122a;border:1px solid #333366;border-radius:10px;padding:8px;margin-top:4px;width:220px;max-height:200px;overflow-y:auto;flex-wrap:wrap;gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.6)">
         </div>
@@ -487,9 +490,17 @@
         <input class="finput" id="edit-url" type="url" placeholder="https://...">
       </div>
       <div class="finput-row">
-        <div class="fgroup">
-          <label class="flabel" data-i18n="fEmoji">Emoji</label>
-          <input class="finput" id="edit-emoji" type="text" maxlength="4" style="width:70px">
+        <div class="fgroup" style="position:relative">
+          <label class="flabel">Icon</label>
+          <div style="display:flex;gap:4px;align-items:center">
+            <div id="edit-icon-preview" style="width:42px;height:42px;border:1px solid #333366;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;background:#1a1a3a;overflow:hidden">🤖</div>
+            <input class="finput" id="edit-emoji" type="hidden" value="🤖">
+            <input type="file" id="edit-icon-file" accept="image/*" style="display:none">
+            <button type="button" id="edit-emoji-toggle" style="background:#1a1a3a;border:1px solid #333366;border-radius:8px;color:#fff;font-size:.75rem;padding:6px 8px;cursor:pointer">Emoji ▼</button>
+            <button type="button" id="edit-icon-upload-btn" style="background:#1a1a3a;border:1px solid #333366;border-radius:8px;color:#fff;font-size:.75rem;padding:6px 8px;cursor:pointer">Upload</button>
+          </div>
+          <div id="edit-emoji-picker" style="display:none;position:absolute;top:100%;left:0;z-index:999;background:#12122a;border:1px solid #333366;border-radius:10px;padding:8px;margin-top:4px;width:220px;max-height:200px;overflow-y:auto;flex-wrap:wrap;gap:2px;box-shadow:0 8px 24px rgba(0,0,0,.6)">
+          </div>
         </div>
         <div class="fgroup">
           <label class="flabel" data-i18n="fColor">Color</label>
@@ -615,6 +626,7 @@ function getHeatColor(r,c,alpha=1){
 // Grid Data (sample agents)
 // ═══════════════════════════════════════════════════
 const gridData={};
+const iconCache={};
 const sampleAgents=[
   {r:44,c:46,w:6,h:6,color:'#00ffcc',emoji:'🦞',name:'OpenClaw',desc:'The open-source agent that proved AI belongs to everyone. 247K stars on GitHub — a movement, not just a repo. The first autonomous agent ordinary people could run on their own machine.',url:'https://openclaw.ai/',cat:'Dev',pricePaid:993},
   {r:44,c:52,w:3,h:3,color:'#da7756',emoji:'✦',name:'Claude Code',desc:'The agent that made software engineers 10x overnight. Anthropic unleashed a coder that plans, writes, tests and ships — autonomously. The craft of programming was never the same.',url:'https://claude.ai/',cat:'Dev',pricePaid:237},
@@ -656,7 +668,7 @@ function loadGridFromAPI() {
             gridData[`${r}_${c}`] = {
               r: a.row, c: a.col, w: a.width, h: a.height,
               name: a.name, desc: a.description, url: a.url,
-              emoji: a.emoji, color: a.color, cat: a.category,
+              emoji: a.emoji, color: a.color, cat: a.category, icon: a.icon||'',
               pricePaid: a.price_paid, tx_hash: a.tx_hash,
               cellId: a.id, sample: isSample,
               anchor: r === a.row && c === a.col,
@@ -744,15 +756,26 @@ function drawGrid(){
       ctx.strokeRect(x+1,y+1,bw-2,bh-2);
       ctx.shadowBlur=0;
 
-      // Emoji centered on block
+      // Icon or Emoji centered on block
       const hasName=cellSz>=20&&cell.name;
       const emojiSize=Math.min(bw*0.55,bh*0.55,38);
       if(emojiSize>=6){
         const ey=hasName?cy-emojiSize*0.28:cy;
-        ctx.font=`${emojiSize}px serif`;
-        ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillStyle='#ffffff';
-        ctx.fillText(cell.emoji||'🤖',cx,ey);
+        if(cell.icon){
+          const img=iconCache[cell.icon];
+          if(img&&img.complete){
+            const s=emojiSize;
+            ctx.drawImage(img,cx-s/2,ey-s/2,s,s);
+          } else if(!img){
+            const i=new Image();i.src=cell.icon;iconCache[cell.icon]=i;
+            i.onload=()=>drawGrid();
+          }
+        } else {
+          ctx.font=`${emojiSize}px serif`;
+          ctx.textAlign='center';ctx.textBaseline='middle';
+          ctx.fillStyle='#ffffff';
+          ctx.fillText(cell.emoji||'🤖',cx,ey);
+        }
       }
 
       // Name text (zoom 20px+)
@@ -1079,22 +1102,76 @@ function resetZoom(){
 // Emoji Picker
 // ═══════════════════════════════════════════════════
 const EMOJI_LIST=['🤖','🧠','🚀','💡','🔥','⚡','🎯','💰','🛡️','🌐','📊','🔮','🎮','🐉','👾','🦾','💎','🧬','📡','🔧','🎨','🏆','❤️','🌟','🪐','🤝','📈','🔑','🧪','🦊','🐸','🦅','🐋','🦁','🐺','🦇','🕷️','🐙','🦖','🔴','🟢','🔵','🟡','🟣','⚪','🟠','💜','💚','❄️','☀️'];
-(function initEmojiPicker(){
-  const picker=document.getElementById('emoji-picker');
-  const input=document.getElementById('f-emoji');
-  const toggle=document.getElementById('emoji-toggle');
+let pendingIcon=''; // base64 for purchase form
+let editPendingIcon=''; // base64 for edit form
+
+function resizeImage(file,maxSz,cb){
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const c=document.createElement('canvas');
+      let w=img.width,h=img.height;
+      if(w>maxSz||h>maxSz){const s=maxSz/Math.max(w,h);w=Math.round(w*s);h=Math.round(h*s);}
+      c.width=w;c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      cb(c.toDataURL('image/png',0.85));
+    };
+    img.src=reader.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setupIconPicker(pickerEl,toggleEl,uploadBtn,fileInput,previewEl,emojiInput,getSetIcon){
   EMOJI_LIST.forEach(em=>{
     const btn=document.createElement('span');
     btn.textContent=em;
     btn.style.cssText='cursor:pointer;font-size:1.4rem;padding:4px 5px;border-radius:6px;display:inline-block;text-align:center;';
     btn.onmouseenter=()=>btn.style.background='#2a2a5a';
     btn.onmouseleave=()=>btn.style.background='none';
-    btn.onclick=()=>{input.value=em;picker.style.display='none';};
-    picker.appendChild(btn);
+    btn.onclick=()=>{
+      emojiInput.value=em;
+      previewEl.innerHTML='';previewEl.textContent=em;previewEl.style.fontSize='1.3rem';
+      getSetIcon('');
+      pickerEl.style.display='none';
+    };
+    pickerEl.appendChild(btn);
   });
-  toggle.onclick=()=>{picker.style.display=picker.style.display==='flex'?'none':'flex';};
-  document.addEventListener('click',e=>{if(!picker.contains(e.target)&&e.target!==toggle)picker.style.display='none';});
-})();
+  toggleEl.onclick=()=>{pickerEl.style.display=pickerEl.style.display==='flex'?'none':'flex';};
+  uploadBtn.onclick=()=>fileInput.click();
+  fileInput.onchange=()=>{
+    const f=fileInput.files[0];if(!f)return;
+    if(f.size>2*1024*1024){alert('Max 2MB');return;}
+    resizeImage(f,64,base64=>{
+      getSetIcon(base64);
+      emojiInput.value='';
+      previewEl.innerHTML=`<img src="${base64}" style="width:100%;height:100%;object-fit:contain">`;
+    });
+    fileInput.value='';
+  };
+  document.addEventListener('click',e=>{if(!pickerEl.contains(e.target)&&e.target!==toggleEl)pickerEl.style.display='none';});
+}
+
+// Purchase form icon picker
+setupIconPicker(
+  document.getElementById('emoji-picker'),
+  document.getElementById('emoji-toggle'),
+  document.getElementById('icon-upload-btn'),
+  document.getElementById('f-icon-file'),
+  document.getElementById('icon-preview'),
+  document.getElementById('f-emoji'),
+  v=>{pendingIcon=v;}
+);
+// Edit form icon picker
+setupIconPicker(
+  document.getElementById('edit-emoji-picker'),
+  document.getElementById('edit-emoji-toggle'),
+  document.getElementById('edit-icon-upload-btn'),
+  document.getElementById('edit-icon-file'),
+  document.getElementById('edit-icon-preview'),
+  document.getElementById('edit-emoji'),
+  v=>{editPendingIcon=v;}
+);
 
 // ═══════════════════════════════════════════════════
 // Purchase Modal
@@ -1108,6 +1185,9 @@ function showPurchase(r,c,w=1,h=1){
   document.getElementById('f-tx').value='';document.getElementById('f-name').value='';
   document.getElementById('f-desc').value='';document.getElementById('f-url').value='';
   document.getElementById('f-emoji').value='🤖';
+  pendingIcon='';
+  document.getElementById('icon-preview').innerHTML='🤖';
+  document.getElementById('icon-preview').style.fontSize='1.3rem';
   updatePrice();
   document.getElementById('modal-buy').classList.remove('hidden');
 }
@@ -1162,7 +1242,7 @@ function submitPurchase(){
   fetch(`${API_BASE}/api/submit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ txHash: tx, row: selRow, col: selCol, width: w, height: h, name, description: desc, url, emoji, color, category: cat })
+    body: JSON.stringify({ txHash: tx, row: selRow, col: selCol, width: w, height: h, name, description: desc, url, emoji, color, category: cat, icon: pendingIcon })
   })
     .then(r => r.json())
     .then(data => {
@@ -1190,7 +1270,11 @@ function showCellInfo(r,c,cell){
   document.getElementById('ci-view').style.display = 'block';
   document.getElementById('ci-edit').style.display = 'none';
   const icon=document.getElementById('ci-icon');
-  icon.textContent=cell.emoji||'🤖';
+  if(cell.icon){
+    icon.innerHTML=`<img src="${cell.icon}" style="width:80%;height:80%;object-fit:contain">`;
+  } else {
+    icon.textContent=cell.emoji||'🤖';
+  }
   icon.style.background=`${cell.color}22`;icon.style.border=`1px solid ${cell.color}44`;
   document.getElementById('ci-name').textContent=cell.name;
   document.getElementById('ci-cat').textContent=`${cell.cat||'Agent'} · (${c}, ${r})`;
@@ -1370,6 +1454,13 @@ function showEditMode() {
   document.getElementById('edit-desc').value = editingCell.desc || '';
   document.getElementById('edit-url').value = editingCell.url || '';
   document.getElementById('edit-emoji').value = editingCell.emoji || '🤖';
+  editPendingIcon = editingCell.icon || '';
+  const ep = document.getElementById('edit-icon-preview');
+  if(editPendingIcon){
+    ep.innerHTML=`<img src="${editPendingIcon}" style="width:100%;height:100%;object-fit:contain">`;
+  } else {
+    ep.innerHTML=editingCell.emoji||'🤖'; ep.style.fontSize='1.3rem';
+  }
   document.getElementById('edit-color').value = editingCell.color || '#00ffcc';
   const catSel = document.getElementById('edit-cat');
   for (let i = 0; i < catSel.options.length; i++) {
@@ -1403,7 +1494,7 @@ function submitEdit() {
   fetch(`${API_BASE}/api/update`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ txHash: tx, name, description: desc, url, emoji, color, category: cat })
+    body: JSON.stringify({ txHash: tx, name, description: desc, url, emoji, color, category: cat, icon: editPendingIcon })
   })
     .then(r => r.json())
     .then(data => {

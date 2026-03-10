@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST')    return res.status(405).end();
 
-  const { txHash, name, description, url, emoji, color, category } = req.body;
+  const { txHash, name, description, url, emoji, color, category, icon } = req.body;
 
   if (!txHash)
     return res.status(400).json({ error: 'Missing transaction hash' });
@@ -33,7 +33,8 @@ module.exports = async (req, res) => {
         url         = ${url || ''},
         emoji       = ${emoji || '🤖'},
         color       = ${color || '#00ffcc'},
-        category    = ${category || 'Other'}
+        category    = ${category || 'Other'},
+        icon        = ${(icon || '').slice(0, 20000)}
       WHERE tx_hash = ${txHash}
     `;
 
