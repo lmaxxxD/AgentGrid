@@ -647,12 +647,13 @@ function loadGridFromAPI() {
       cells.forEach(a => {
         for (let r = a.row; r < a.row + a.height && r < ROWS; r++) {
           for (let c = a.col; c < a.col + a.width && c < COLS; c++) {
+            const isSample = a.tx_hash && a.tx_hash.startsWith('0xsample');
             gridData[`${r}_${c}`] = {
               r: a.row, c: a.col, w: a.width, h: a.height,
               name: a.name, desc: a.description, url: a.url,
               emoji: a.emoji, color: a.color, cat: a.category,
               pricePaid: a.price_paid, tx_hash: a.tx_hash,
-              cellId: a.id,
+              cellId: a.id, sample: isSample,
               anchor: r === a.row && c === a.col,
               anchorW: a.width, anchorH: a.height
             };
