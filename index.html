@@ -1599,12 +1599,15 @@ function submitEdit() {
 function closeModal(id){
   document.getElementById(id).classList.add('hidden');
   if(id==='modal-buy'){
-    if(currentReservationId){
-      fetch(`${API_BASE}/api/unreserve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reservationId:currentReservationId})}).catch(()=>{});
-    }
+    const rid=currentReservationId;
     lockedSel=null;currentReservationId=null;
     if(reservationTimer){clearInterval(reservationTimer);reservationTimer=null;}
-    loadGridFromAPI();
+    if(rid){
+      fetch(`${API_BASE}/api/unreserve`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reservationId:rid})})
+        .finally(()=>loadGridFromAPI());
+    } else {
+      loadGridFromAPI();
+    }
   }
   if(id==='modal-cell'){hideEditMode();}
 }
@@ -1612,7 +1615,7 @@ function closeModal(id){
 // ═══════════════════════════════════════════════════
 // Modal close
 // ═══════════════════════════════════════════════════
-document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hidden')}));
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)closeModal(o.id)}));
 
 // ═══════════════════════════════════════════════════
 // Sidebar agent list
