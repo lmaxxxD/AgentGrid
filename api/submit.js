@@ -66,7 +66,7 @@ module.exports = async (req, res) => {
 
     res.json({ ok: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error. Please try again.' });
+    console.error('SUBMIT ERROR:', err.message || err, err.stack || '');
+    res.status(500).json({ error: `Server error: ${err.message || 'unknown'}` });
   }
 };
