@@ -867,7 +867,7 @@ function drawDragSel(){
 function showTip(e,nameHtml,nameColor,desc,priceHtml,borderColor,bg){
   const tt=document.getElementById('tooltip');
   const nEl=document.getElementById('tt-name'),dEl=document.getElementById('tt-desc'),pEl=document.getElementById('tt-price');
-  nEl.textContent=nameHtml; nEl.style.color=nameColor;
+  nEl.innerHTML=nameHtml; nEl.style.color=nameColor;
   dEl.textContent=desc; dEl.style.display=desc?'block':'none';
   pEl.innerHTML=priceHtml;
   tt.style.borderColor=borderColor; tt.style.background=bg;
@@ -928,7 +928,8 @@ canvas.addEventListener('mousemove',e=>{
   if(lastHover!==k){drawGrid();drawHighlight(row,col);lastHover=k;}
   const cell=gridData[k], sold=totalSold(), price=getCellPrice(row,col,sold);
   if(cell){
-    showTip(e,`${cell.emoji||'🤖'} ${cell.name}`,cell.color||'#00ffcc',
+    const tipIcon=cell.icon?`<img src="${cell.icon}" style="width:1.2em;height:1.2em;vertical-align:middle;margin-right:4px;border-radius:3px">`:(cell.emoji||'🤖')+' ';
+    showTip(e,`${tipIcon}${cell.name}`,cell.color||'#00ffcc',
       cell.desc.slice(0,70)+(cell.desc.length>70?'…':''),
       `<span style="color:#666688;font-size:.7rem">${getZoneName(row,col)} · ${t('lClaimed')}</span>`,
       cell.color||'#2a2a5a',`linear-gradient(135deg,${cell.color}0d,rgba(8,8,26,.97))`);
