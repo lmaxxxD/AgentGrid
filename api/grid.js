@@ -8,7 +8,8 @@ module.exports = async (req, res) => {
   try {
     await initDB();
     const cells = await sql`SELECT * FROM cells ORDER BY confirmed_at ASC`;
-    res.json({ cells });
+    const reservations = await sql`SELECT row, col, width, height, expires_at FROM reservations WHERE expires_at > NOW()`;
+    res.json({ cells, reservations });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Database error' });

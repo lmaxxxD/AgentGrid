@@ -327,6 +327,7 @@
     <button class="modal-x" onclick="closeModal('modal-buy')">×</button>
     <h2 data-i18n="buyTitle">Claim Your Grid Cell</h2>
     <p class="modal-sub" id="buy-sub">Cell (50, 50)</p>
+    <p style="text-align:center;margin:-6px 0 8px;font-size:.8rem;color:#ff9500">Reserved for <span id="rsv-timer" style="font-weight:bold;font-variant-numeric:tabular-nums">--:--</span></p>
 
     <!-- Price breakdown -->
     <div class="price-breakdown">
@@ -627,6 +628,7 @@ function getHeatColor(r,c,alpha=1){
 // ═══════════════════════════════════════════════════
 const gridData={};
 const iconCache={};
+const reservedCells={}; // key: "r_c" → true
 const sampleAgents=[
   {r:44,c:46,w:6,h:6,color:'#00ffcc',emoji:'🦞',name:'OpenClaw',desc:'The open-source agent that proved AI belongs to everyone. 247K stars on GitHub — a movement, not just a repo. The first autonomous agent ordinary people could run on their own machine.',url:'https://openclaw.ai/',cat:'Dev',pricePaid:993},
   {r:44,c:52,w:3,h:3,color:'#da7756',emoji:'✦',name:'Claude Code',desc:'The agent that made software engineers 10x overnight. Anthropic unleashed a coder that plans, writes, tests and ships — autonomously. The craft of programming was never the same.',url:'https://claude.ai/',cat:'Dev',pricePaid:237},
@@ -659,24 +661,34 @@ function totalSold(){return Object.values(gridData).filter(c=>!c.sample).length}
 function loadGridFromAPI() {
   fetch(`${API_BASE}/api/grid`)
     .then(r => r.json())
-    .then(({ cells }) => {
-      if (!cells || !cells.length) return;
-      cells.forEach(a => {
-        for (let r = a.row; r < a.row + a.height && r < ROWS; r++) {
-          for (let c = a.col; c < a.col + a.width && c < COLS; c++) {
-            const isSample = a.tx_hash && a.tx_hash.startsWith('0xsample');
-            gridData[`${r}_${c}`] = {
-              r: a.row, c: a.col, w: a.width, h: a.height,
-              name: a.name, desc: a.description, url: a.url,
-              emoji: a.emoji, color: a.color, cat: a.category, icon: a.icon||'',
-              pricePaid: a.price_paid, tx_hash: a.tx_hash,
-              cellId: a.id, sample: isSample,
-              anchor: r === a.row && c === a.col,
-              anchorW: a.width, anchorH: a.height
-            };
+    .then(({ cells, reservations }) => {
+      if (cells && cells.length) {
+        cells.forEach(a => {
+          for (let r = a.row; r < a.row + a.height && r < ROWS; r++) {
+            for (let c = a.col; c < a.col + a.width && c < COLS; c++) {
+              const isSample = a.tx_hash && a.tx_hash.startsWith('0xsample');
+              gridData[`${r}_${c}`] = {
+                r: a.row, c: a.col, w: a.width, h: a.height,
+                name: a.name, desc: a.description, url: a.url,
+                emoji: a.emoji, color: a.color, cat: a.category, icon: a.icon||'',
+                pricePaid: a.price_paid, tx_hash: a.tx_hash,
+                cellId: a.id, sample: isSample,
+                anchor: r === a.row && c === a.col,
+                anchorW: a.width, anchorH: a.height
+              };
+            }
           }
-        }
-      });
+        });
+      }
+      // Load active reservations
+      Object.keys(reservedCells).forEach(k=>delete reservedCells[k]);
+      if (reservations && reservations.length) {
+        reservations.forEach(rv => {
+          for (let r = rv.row; r < rv.row + rv.height && r < ROWS; r++)
+            for (let c = rv.col; c < rv.col + rv.width && c < COLS; c++)
+              reservedCells[`${r}_${c}`] = true;
+        });
+      }
       drawGrid();
       updateStats();
     })
@@ -708,6 +720,9 @@ function drawGrid(){
           ctx.fillStyle='#1a1a3a';
           ctx.fillRect(x,y,s,s);
         }
+      } else if(reservedCells[k]){
+        ctx.fillStyle='rgba(255,165,0,0.15)';
+        ctx.fillRect(x,y,s,s);
       } else {
         if(showHeatmap){
           ctx.fillStyle=getHeatColor(r,c,0.35);
@@ -853,7 +868,7 @@ function dragRect(){
   return {r1,c1,r2,c2,w:c2-c1+1,h:r2-r1+1};
 }
 function selConflict(sel){
-  for(let r=sel.r1;r<=sel.r2;r++)for(let c=sel.c1;c<=sel.c2;c++)if(gridData[`${r}_${c}`])return true;
+  for(let r=sel.r1;r<=sel.r2;r++)for(let c=sel.c1;c<=sel.c2;c++)if(gridData[`${r}_${c}`]||reservedCells[`${r}_${c}`])return true;
   return false;
 }
 function drawDragSel(){
@@ -896,7 +911,7 @@ function showTip(e,nameHtml,nameColor,desc,priceHtml,borderColor,bg){
 canvas.addEventListener('mousedown',e=>{
   if(e.button!==0)return;
   const {row,col,ok}=getCell(e); if(!ok)return;
-  if(gridData[`${row}_${col}`]){dragStart=null;return;} // occupied → handle on mouseup
+  if(gridData[`${row}_${col}`]||reservedCells[`${row}_${col}`]){dragStart=null;return;} // occupied or reserved
   dragStart={r:row,c:col}; dragCur={r:row,c:col}; isDragging=false;
   e.preventDefault();
 });
@@ -999,7 +1014,7 @@ canvas.addEventListener('mouseup',e=>{
 // ── Touch events for mobile ──
 canvas.addEventListener('touchstart',e=>{
   const {row,col,ok}=getCell(e); if(!ok)return;
-  if(gridData[`${row}_${col}`]){dragStart=null;return;}
+  if(gridData[`${row}_${col}`]||reservedCells[`${row}_${col}`]){dragStart=null;return;}
   dragStart={r:row,c:col}; dragCur={r:row,c:col}; isDragging=false;
   e.preventDefault();
 },{passive:false});
@@ -1192,7 +1207,8 @@ setupIconPicker(
 // ═══════════════════════════════════════════════════
 // Purchase Modal
 // ═══════════════════════════════════════════════════
-let selRow=50,selCol=50,lockedSel=null;
+let selRow=50,selCol=50,lockedSel=null,currentReservationId=null,reservationTimer=null;
+
 function showPurchase(r,c,w=1,h=1){
   selRow=r!==undefined?r:50;selCol=c!==undefined?c:50;
   lockedSel={r1:selRow,c1:selCol,w,h}; drawGrid();
@@ -1205,16 +1221,58 @@ function showPurchase(r,c,w=1,h=1){
   pendingIcon='';
   document.getElementById('icon-preview').innerHTML='🤖';
   document.getElementById('icon-preview').style.fontSize='1.3rem';
-  updatePrice();
+  updatePriceLocal();
   document.getElementById('modal-buy').classList.remove('hidden');
+  // Reserve cells on server
+  doReserve();
 }
+
+function doReserve(){
+  const w=Math.max(1,parseInt(document.getElementById('cell-w').value)||1);
+  const h=Math.max(1,parseInt(document.getElementById('cell-h').value)||1);
+  currentReservationId=null;
+  if(reservationTimer){clearInterval(reservationTimer);reservationTimer=null;}
+  const timerEl=document.getElementById('rsv-timer');
+  if(timerEl)timerEl.textContent='Reserving...';
+  fetch(`${API_BASE}/api/reserve`,{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({row:selRow,col:selCol,width:w,height:h})
+  }).then(r=>r.json()).then(data=>{
+    if(data.ok){
+      currentReservationId=data.reservationId;
+      // Show locked price from server
+      document.getElementById('br-total').textContent=`$${data.price} USDC`;
+      document.getElementById('pay-amount').innerHTML=`$${data.price} <span>USDC</span>`;
+      // Start countdown
+      let remaining=data.expiresIn;
+      const update=()=>{
+        const m=Math.floor(remaining/60),s=remaining%60;
+        if(timerEl)timerEl.textContent=`${m}:${s.toString().padStart(2,'0')}`;
+        if(remaining<=0){clearInterval(reservationTimer);reservationTimer=null;
+          if(timerEl)timerEl.textContent='Expired';
+          alert('Reservation expired. Please select cells again.');
+          closeModal('modal-buy');
+        }
+        remaining--;
+      };
+      update();
+      reservationTimer=setInterval(update,1000);
+      loadGridFromAPI();
+    } else {
+      alert('❌ '+data.error);
+      closeModal('modal-buy');
+    }
+  }).catch(()=>{alert('Network error reserving cells.');closeModal('modal-buy');});
+}
+
 function setMaxCells(){
   document.getElementById('cell-w').value=20;
   document.getElementById('cell-h').value=20;
-  updatePrice();
+  updatePriceLocal();
+  doReserve();
 }
 
-function updatePrice(){
+function updatePriceLocal(){
   const w=Math.max(1,parseInt(document.getElementById('cell-w').value)||1);
   const h=Math.max(1,parseInt(document.getElementById('cell-h').value)||1);
   const sold=totalSold();
@@ -1228,6 +1286,7 @@ function updatePrice(){
   document.getElementById('pay-amount').innerHTML=`$${total} <span>USDC</span>`;
   lockedSel={r1:selRow,c1:selCol,w,h}; drawGrid();
 }
+function updatePrice(){updatePriceLocal();doReserve();}
 
 function copyWallet(){
   navigator.clipboard.writeText(WALLET).then(()=>{
@@ -1245,12 +1304,13 @@ function submitPurchase(){
   const emoji= document.getElementById('f-emoji').value.trim() || '🤖';
   const color= document.getElementById('f-color').value;
   const cat  = document.getElementById('f-cat').value;
-  const w    = parseInt(document.getElementById('cell-w').value) || 1;
-  const h    = parseInt(document.getElementById('cell-h').value) || 1;
 
   if (!tx || !name || !desc) {
     const msgs = { en:'Please fill in tx hash, agent name and description', zh:'请填写交易哈希、智能体名称和描述', ja:'ハッシュ・名前・説明を入力してください', es:'Por favor completa el hash, nombre y descripción' };
     alert(msgs[lang]); return;
+  }
+  if(!currentReservationId){
+    alert('Reservation expired. Please close and select cells again.'); return;
   }
 
   const btn = document.querySelector('.sub-btn');
@@ -1260,7 +1320,7 @@ function submitPurchase(){
   fetch(`${API_BASE}/api/submit`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ txHash: tx, row: selRow, col: selCol, width: w, height: h, name, description: desc, url, emoji, color, category: cat, icon: pendingIcon })
+    body: JSON.stringify({ txHash: tx, reservationId: currentReservationId, name, description: desc, url, emoji, color, category: cat, icon: pendingIcon })
   })
     .then(r => r.json())
     .then(data => {
@@ -1538,7 +1598,11 @@ function submitEdit() {
 
 function closeModal(id){
   document.getElementById(id).classList.add('hidden');
-  if(id==='modal-buy'){lockedSel=null;drawGrid();}
+  if(id==='modal-buy'){
+    lockedSel=null;currentReservationId=null;
+    if(reservationTimer){clearInterval(reservationTimer);reservationTimer=null;}
+    drawGrid();
+  }
   if(id==='modal-cell'){hideEditMode();}
 }
 

@@ -47,6 +47,20 @@ async function initDB() {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS reservations (
+      id         TEXT PRIMARY KEY,
+      row        INTEGER NOT NULL,
+      col        INTEGER NOT NULL,
+      width      INTEGER NOT NULL DEFAULT 1,
+      height     INTEGER NOT NULL DEFAULT 1,
+      price      REAL NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+  await sql`DELETE FROM reservations WHERE expires_at < NOW()`;
 }
 
 module.exports = { sql, initDB };
