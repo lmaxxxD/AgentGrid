@@ -39,7 +39,7 @@
     .tb-btn:hover,.tb-btn.active{background:#2a2a5a;color:#00ffcc;border-color:#00ffcc44}
     .zoom-btn{background:#13132e;border:1px solid #2a2a5a;color:#e0e0ff;width:26px;height:26px;border-radius:4px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
     .zoom-btn:hover{background:#2a2a5a}
-    .canvas-wrapper{border:1px solid #2a2a5a;border-radius:8px;overflow:auto;max-width:calc(100vw - 360px);height:calc(100vh - 200px);background:#0d0d2b;cursor:crosshair;position:relative}
+    .canvas-wrapper{border:1px solid #2a2a5a;border-radius:8px;overflow:auto;max-width:calc(100vw - 360px);height:calc(100vh - 200px);background:#0d0d2b;cursor:crosshair;position:relative;touch-action:pan-y;-webkit-overflow-scrolling:touch}
     #grid-canvas{display:block}
     .grid-hint{font-size:.7rem;color:#444466;margin-top:8px;text-align:center}
 
@@ -238,7 +238,7 @@
       <div class="legend-item"><div class="legend-dot" style="background:#4488ff"></div><span data-i18n="lEdge">Edge Zone ($10)</span></div>
       <div class="legend-item"><div class="legend-dot" style="background:#555577"></div><span data-i18n="lClaimed">Claimed</span></div>
     </div>
-    <div class="grid-hint" id="grid-hint">Drag to select area · Release to confirm · Click occupied cells for info · Center = premium</div>
+    <div class="grid-hint" id="grid-hint">Tap empty cell to select · Swipe to select multiple · Tap occupied cell for info · Hold+drag for area select</div>
   </div>
 
   <div class="sidebar">
@@ -1013,47 +1013,74 @@ canvas.addEventListener('mouseup',e=>{
 });
 
 // ── Touch events for mobile ──
+// Track touch origin to distinguish scroll from drag-select
+let touchOrigin=null;
+const DRAG_THRESHOLD=12; // px movement before we consider it a drag-select
+
 canvas.addEventListener('touchstart',e=>{
-  const {row,col,ok}=getCell(e); if(!ok)return;
-  if(gridData[`${row}_${col}`]){dragStart=null;return;}
+  const {row,col,ok}=getCell(e);
+  if(!ok){touchOrigin=null;return;}
+  if(gridData[`${row}_${col}`]){dragStart=null;touchOrigin=null;return;}
+  const t=e.touches[0];
+  touchOrigin={r:row,c:col,x:t.clientX,y:t.clientY,started:Date.now()};
   dragStart={r:row,c:col}; dragCur={r:row,c:col}; isDragging=false;
   e.preventDefault();
 },{passive:false});
 
 canvas.addEventListener('touchmove',e=>{
-  if(!dragStart)return;
+  if(!dragStart||!touchOrigin)return;
   e.preventDefault();
-  const {row,col,ok}=getCell(e);
-  isDragging=true;
-  if(ok){
-    const clampedR=Math.max(0,Math.min(ROWS-1,row));
-    const clampedC=Math.max(0,Math.min(COLS-1,col));
-    dragCur={
-      r:Math.min(clampedR, dragStart.r+19),
-      c:Math.min(clampedC, dragStart.c+19)
-    };
-    if(clampedR<dragStart.r) dragCur.r=Math.max(clampedR, dragStart.r-19);
-    if(clampedC<dragStart.c) dragCur.c=Math.max(clampedC, dragStart.c-19);
+  const t=e.touches[0];
+  const dx=t.clientX-touchOrigin.x, dy=t.clientY-touchOrigin.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+
+  // If user has moved enough in any direction → treat as drag selection
+  if(dist>DRAG_THRESHOLD){
+    isDragging=true;
+    const {row,col,ok}=getCell(e);
+    if(ok){
+      const clampedR=Math.max(0,Math.min(ROWS-1,row));
+      const clampedC=Math.max(0,Math.min(COLS-1,col));
+      dragCur={
+        r:Math.min(clampedR, dragStart.r+19),
+        c:Math.min(clampedC, dragStart.c+19)
+      };
+      if(clampedR<dragStart.r) dragCur.r=Math.max(clampedR, dragStart.r-19);
+      if(clampedC<dragStart.c) dragCur.c=Math.max(clampedC, dragStart.c-19);
+    }
+    drawGrid(); drawDragSel();
+    return;
   }
-  drawGrid(); drawDragSel();
+
+  // Small movement: let the page scroll (don't claim this as a drag)
+  // Just highlight the hovered cell without starting full drag
+  if(dist<=DRAG_THRESHOLD){
+    drawGrid();
+    const {row,col,ok}=getCell(e);
+    if(ok) drawHighlight(row,col);
+  }
 },{passive:false});
 
 canvas.addEventListener('touchend',e=>{
-  const {row,col,ok}=getCellFromTouch(e);
+  // If touch was very short (tap) and on empty cell → select 1×1
+  const timeOpen=Date.now()-(touchOrigin?touchOrigin.started:0);
+  const t=e.changedTouches[0];
+  const wasTap=touchOrigin&&timeOpen<300;
 
-  if(!dragStart){
-    if(ok&&gridData[`${row}_${col}`])showCellInfo(row,col,gridData[`${row}_${col}`]);
-    return;
-  }
-
+  // If we never actually dragged (no real movement) — treat as click
   if(!isDragging){
-    dragStart=null;dragCur=null;isDragging=false; drawGrid();
-    if(ok&&!gridData[`${row}_${col}`])showPurchase(row,col,1,1);
+    const {row,col,ok}=getCellFromTouch(e);
+    dragStart=null;dragCur=null;drawGrid();touchOrigin=null;
+    if(ok){
+      if(gridData[`${row}_${col}`]){showCellInfo(row,col,gridData[`${row}_${col}`]);return;}
+      if(wasTap){showPurchase(row,col,1,1);return;}
+    }
     return;
   }
 
+  // Drag finished → show purchase modal
   const sel=dragRect();
-  dragStart=null;dragCur=null;isDragging=false; drawGrid();
+  dragStart=null;dragCur=null;isDragging=false; drawGrid();touchOrigin=null;
   if(!sel)return;
 
   if(selConflict(sel)){
