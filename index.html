@@ -31,7 +31,7 @@
     main{padding:20px;display:flex;gap:20px;justify-content:center;align-items:flex-start}
 
     /* ── Grid panel ── */
-    .grid-panel{flex:0 0 auto}
+    .grid-panel{flex:0 0 1100px;min-width:600px}
     .grid-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:12px;flex-wrap:wrap}
     .grid-title{font-size:.72rem;color:#8888aa;letter-spacing:2px;text-transform:uppercase}
     .toolbar-right{display:flex;gap:6px;align-items:center}
@@ -39,8 +39,8 @@
     .tb-btn:hover,.tb-btn.active{background:#2a2a5a;color:#00ffcc;border-color:#00ffcc44}
     .zoom-btn{background:#13132e;border:1px solid #2a2a5a;color:#e0e0ff;width:26px;height:26px;border-radius:4px;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:background .2s}
     .zoom-btn:hover{background:#2a2a5a}
-    .canvas-wrapper{border:1px solid #2a2a5a;border-radius:8px;overflow:auto;max-width:calc(100vw - 360px);height:calc(100vh - 200px);background:#0d0d2b;cursor:crosshair;position:relative;touch-action:pan-y;-webkit-overflow-scrolling:touch}
-    #grid-canvas{display:block}
+    .canvas-wrapper{border:1px solid #2a2a5a;border-radius:8px;overflow:auto;width:1000px;height:calc(100vh - 200px);min-height:600px;background:#0d0d2b;cursor:crosshair;position:relative}
+    #gc{display:block;width:1000px;height:1000px}
     .grid-hint{font-size:.7rem;color:#444466;margin-top:8px;text-align:center}
 
     /* ── Price legend ── */
